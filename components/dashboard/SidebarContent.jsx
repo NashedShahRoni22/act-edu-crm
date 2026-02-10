@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { ChevronRight, X } from "lucide-react";
-import { menuItems } from "../MenuItems";
+import { menuItems } from "./MenuItems";
 
 export default function SidebarContent({
   expandedItems,

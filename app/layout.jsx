@@ -10,7 +10,7 @@ const inter = Inter({
 });
 
 export const metadata = {
-  title: "ACT Education CRM",
+  title: "ACT CRM",
   description: "Education & Visa Consultants Management System",
 };
 

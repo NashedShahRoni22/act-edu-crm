@@ -3,7 +3,7 @@
 import { motion } from "framer-motion";
 import { useState } from "react";
 import { usePathname } from "next/navigation";
-import SidebarContent from "./pages/SidebarContent";
+import SidebarContent from "./SidebarContent";
 
 export default function Sidebar({ isOpen, setIsOpen }) {
   const pathname = usePathname();
