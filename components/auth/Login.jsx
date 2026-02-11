@@ -17,11 +17,13 @@ import {
   AlertCircle,
   Loader2,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const router = useRouter()
 
   const loginMutation = useMutation({
     mutationFn: async (credentials) => {
@@ -45,10 +47,10 @@ export default function Login() {
       return response.json();
     },
     onSuccess: (data) => {
-      console.log("Login successful:", data);
-      if (data.token) {
-        localStorage.setItem("token", data.token);
-        window.location.href = "/dashboard";
+      if (data.status === "success") {
+        localStorage.setItem("accessToken", data.data.access_token);
+        localStorage.setItem("actUser", JSON.stringify(data.data.user));
+        router.push("/dashboard");
       }
     },
     onError: (error) => {
@@ -58,8 +60,8 @@ export default function Login() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    // loginMutation.mutate({ email, password });
-    window.location.href = "/dashboard";
+    loginMutation.mutate({ email, password });
+    // window.location.href = "/dashboard";
   };
 
   // Floating icons configuration
