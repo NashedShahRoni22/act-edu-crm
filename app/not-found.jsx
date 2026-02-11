@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Home, ArrowLeft, Search, AlertCircle } from "lucide-react";
+import { Home, ArrowLeft, AlertCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
@@ -116,61 +116,6 @@ export default function NotFoundPage() {
             </motion.button>
           </motion.div>
 
-          {/* Decorative Elements */}
-          {/* <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.8 }}
-            className="mt-12 pt-8 border-t border-white/10"
-          >
-            <p className="text-gray-500 text-sm mb-4">Need help finding something?</p>
-            <div className="flex justify-center gap-6">
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                className="text-[#1FB3C8] hover:text-[#2DD4BF] transition-colors text-sm font-medium"
-              >
-                Contact Support
-              </motion.button>
-              <span className="text-gray-700">•</span>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                className="text-[#1FB3C8] hover:text-[#2DD4BF] transition-colors text-sm font-medium"
-              >
-                Browse Services
-              </motion.button>
-              <span className="text-gray-700">•</span>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                className="text-[#1FB3C8] hover:text-[#2DD4BF] transition-colors text-sm font-medium"
-              >
-                View Documentation
-              </motion.button>
-            </div>
-          </motion.div> */}
-
-          {/* Floating particles effect */}
-          <div className="absolute inset-0 overflow-hidden pointer-events-none">
-            {[...Array(20)].map((_, i) => (
-              <motion.div
-                key={i}
-                className="absolute w-1 h-1 bg-[#1FB3C8] rounded-full"
-                initial={{
-                  x: Math.random() * window.innerWidth,
-                  y: Math.random() * window.innerHeight,
-                  opacity: 0,
-                }}
-                animate={{
-                  y: [null, Math.random() * -100 - 100],
-                  opacity: [0, 1, 0],
-                }}
-                transition={{
-                  duration: Math.random() * 3 + 2,
-                  repeat: Infinity,
-                  delay: Math.random() * 2,
-                }}
-              />
-            ))}
-          </div>
         </motion.div>
       </div>
     </div>
