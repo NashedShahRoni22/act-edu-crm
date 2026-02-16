@@ -115,14 +115,14 @@ export default function Preferences() {
     const formDataToSend = new FormData();
     formDataToSend.append("_method", "PUT");
     formDataToSend.append("company_name", formData.company_name);
-    formDataToSend.append("email", formData.email);
-    formDataToSend.append("phone", formData.phone);
-    formDataToSend.append("fax", formData.fax);
-    formDataToSend.append("website", formData.website);
+    formDataToSend.append("company_email", formData.email);
+    formDataToSend.append("company_phone", formData.phone);
+    formDataToSend.append("company_fax", formData.fax);
+    formDataToSend.append("company_website", formData.website);
     formDataToSend.append("street", formData.street);
     formDataToSend.append("city", formData.city);
     formDataToSend.append("state", formData.state);
-    formDataToSend.append("zip", formData.zip);
+    formDataToSend.append("zip_code", formData.zip);
     formDataToSend.append("country", formData.country);
 
     if (logoFile) {

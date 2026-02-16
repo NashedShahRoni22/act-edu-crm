@@ -137,15 +137,15 @@ export default function Topbar({ toggleSidebar }) {
             </div>
 
             {/* Calendar */}
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors relative"
-            >
-              <Link href="/dashboard/settings">
+            <Link href="/dashboard/settings">
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors relative"
+              >
                 <Settings className="w-5 h-5 text-gray-600" />
-              </Link>
-            </motion.button>
+              </motion.button>
+            </Link>
           </div>
 
           {/* User Profile */}
@@ -225,5 +225,5 @@ export default function Topbar({ toggleSidebar }) {
 
 // Add this import at the top if not already there
 import { UserCheck } from "lucide-react";
-import { useAppContext } from "@/context/context";import Link from "next/link";
-
+import { useAppContext } from "@/context/context";
+import Link from "next/link";

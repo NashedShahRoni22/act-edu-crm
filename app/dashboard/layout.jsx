@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import Sidebar from "../../components/dashboard/Sidebar";
-import Topbar from "../../components/dashboard/Topbar";
 import PrivateRoute from "@/components/private/PrivateRoute";
+import Sidebar from "@/components/dashboard/shared/Sidebar";
+import Topbar from "@/components/dashboard/shared/Topbar";
 
 export default function DashboardLayout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);

@@ -1,7 +1,11 @@
 "use client";
 
+import Accounts from "./Accounts";
+import CompanyEmails from "./companyemail/CompanyEmails";
 import Preferences from "./Preferences";
 import TagManagement from "./Tagmanagement";
+import EmailTemplates from "./templates/EmailTemplates";
+import Workflowpage from "./Workflowpage";
 
 export default function SectionContainer({ activeNav }) {
   const renderContent = () => {
@@ -10,16 +14,16 @@ export default function SectionContainer({ activeNav }) {
         return <Preferences />;
       case "tag-management":
         return <TagManagement/>;
-      case "subscription-billing":
-        return <DefaultPlaceholder section="Subscription & Billing" />;
+      // case "subscription-billing":
+      //   return <DefaultPlaceholder section="Subscription & Billing" />;
       case "accounts":
-        return <DefaultPlaceholder section="Accounts" />;
+        return <Accounts />;
       case "workflows":
-        return <DefaultPlaceholder section="Workflows" />;
+        return <Workflowpage/>;
       case "email":
-        return <DefaultPlaceholder section="Email" />;
+        return <CompanyEmails/>;
       case "templates":
-        return <DefaultPlaceholder section="Templates" />;
+        return <EmailTemplates />;
       case "phone-settings":
         return <DefaultPlaceholder section="Phone Settings" />;
       case "lead-forms":

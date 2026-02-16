@@ -18,12 +18,14 @@ import {
   Loader2,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useAppContext } from "@/context/context";
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const router = useRouter()
+  const router = useRouter();
+  const { setUserInfo, setAccessToken } = useAppContext();
 
   const loginMutation = useMutation({
     mutationFn: async (credentials) => {
@@ -50,6 +52,8 @@ export default function Login() {
       if (data.status === "success") {
         localStorage.setItem("accessToken", data.data.access_token);
         localStorage.setItem("actUser", JSON.stringify(data.data.user));
+        setAccessToken(data.data.access_token);
+        setUserInfo(data.data.user);
         router.push("/dashboard");
       }
     },
