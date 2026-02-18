@@ -1,7 +1,7 @@
 "use client";
 
 import Accounts from "./Accounts";
-import CompanyEmails from "./companyemail/CompanyEmails";
+import Email from "./Email";
 import Preferences from "./Preferences";
 import TagManagement from "./Tagmanagement";
 import EmailTemplates from "./templates/EmailTemplates";
@@ -21,7 +21,7 @@ export default function SectionContainer({ activeNav }) {
       case "workflows":
         return <Workflowpage/>;
       case "email":
-        return <CompanyEmails/>;
+        return <Email/>;
       case "templates":
         return <EmailTemplates />;
       case "phone-settings":

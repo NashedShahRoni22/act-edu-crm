@@ -4,10 +4,12 @@ import { motion } from "framer-motion";
 import { useState } from "react";
 import { usePathname } from "next/navigation";
 import SidebarContent from "./SidebarContent";
+import { useAppContext } from "@/context/context";
 
 export default function Sidebar({ isOpen, setIsOpen }) {
   const pathname = usePathname();
   const [expandedItems, setExpandedItems] = useState([]);
+  const { userInfo } = useAppContext();
 
   const toggleSubmenu = (index) => {
     if (expandedItems.includes(index)) {
@@ -38,6 +40,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
           toggleSubmenu={toggleSubmenu}
           onClose={() => setIsOpen(false)}
           isMobile={false}
+          userInfo={userInfo}
         />
       </aside>
 
@@ -56,6 +59,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
           toggleSubmenu={toggleSubmenu}
           onClose={() => setIsOpen(false)}
           isMobile={true}
+          userInfo={userInfo}
         />
       </motion.aside>
     </>

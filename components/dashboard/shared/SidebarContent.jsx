@@ -9,6 +9,7 @@ export default function SidebarContent({
   onClose,
   isMobile,
   pathname,
+  userInfo,
 }) {
   return (
     <>
@@ -125,13 +126,13 @@ export default function SidebarContent({
       <div className="border-t border-gray-200 p-4">
         <div className="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
           <div className="w-9 h-9 bg-gradient-to-br from-primary to-secondary rounded-full flex items-center justify-center text-white font-medium text-sm">
-            AD
+            {userInfo?.name?.slice(0, 2).toUpperCase()}
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-gray-900 truncate">
-              Admin User
+              {userInfo?.name}
             </p>
-            <p className="text-xs text-gray-500 truncate">admin@act.com</p>
+            <p className="text-xs text-gray-500 truncate">{userInfo?.email}</p>
           </div>
         </div>
       </div>
