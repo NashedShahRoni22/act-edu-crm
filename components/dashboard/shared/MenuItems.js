@@ -14,7 +14,11 @@ import {
 } from "lucide-react";
 
 export const menuItems = [
-  { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
+  {
+    icon: LayoutDashboard,
+    label: "Dashboard",
+    path: "/dashboard",
+  },
   {
     icon: UserCheck,
     label: "Office Check-in",
@@ -60,12 +64,47 @@ export const menuItems = [
     label: "Accounts",
     path: "/dashboard/accounts",
     hasSubmenu: true,
+    children:
+    [
+      {
+        label: "Invoices",
+        path: "/dashboard/invoices",
+      },
+      {
+        label: "Payments",
+        path: "/dashboard/payments",
+      },
+    ]
   },
-  { icon: UsersRound, label: "Teams", path: "/dashboard/teams" },
+  {
+    icon: UsersRound,
+    label: "Teams",
+    path: "/dashboard/teams",
+    hasSubmenu: true,
+    children:
+    [
+      {
+        label: "Offices",
+        path: "/dashboard/offices",
+      },
+      {
+        label: "Users",
+        path: "/dashboard/users",
+      },
+      {
+        label: "Roles",
+        path: "/dashboard/roles",
+      },
+    ]
+  },
   {
     icon: UsersRound,
     label: "Agents",
     path: "/dashboard/agents",
   },
-  { icon: Wrench, label: "Tools", path: "/dashboard/tools" },
+  {
+    icon: Wrench,
+    label: "Tools",
+    path: "/dashboard/tools",
+  },
 ];

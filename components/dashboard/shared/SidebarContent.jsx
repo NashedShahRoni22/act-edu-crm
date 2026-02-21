@@ -1,16 +1,23 @@
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { ChevronRight, X } from "lucide-react";
 import { menuItems } from "./MenuItems";
 import Link from "next/link";
 
 export default function SidebarContent({
   expandedItems,
-  toggleSubmenu,
+  setExpandedItems,
   onClose,
   isMobile,
   pathname,
   userInfo,
 }) {
+  // Accordion: only one open at a time
+  const handleToggleSubmenu = (index) => {
+    setExpandedItems((prev) =>
+      prev.includes(index) ? [] : [index]
+    );
+  };
+
   return (
     <>
       {/* Logo Section */}
@@ -46,33 +53,25 @@ export default function SidebarContent({
           {menuItems.map((item, index) => (
             <motion.li key={index} whileHover={{ x: 4 }}>
               {item.hasSubmenu ? (
-                // Button for submenu items
+                // Parent button — never gets active bg, only children do
                 <button
-                  onClick={() => toggleSubmenu(index)}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all w-full ${
-                    pathname === item.path
-                      ? "bg-primary text-white shadow-md"
-                      : "text-gray-700 hover:bg-gray-100"
-                  }`}
+                  onClick={() => handleToggleSubmenu(index)}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all w-full text-gray-700 hover:bg-gray-100"
                 >
                   <item.icon
-                    className={`w-5 h-5 ${
-                      pathname === item.path ? "text-white" : "text-gray-600"
-                    }`}
+                    className="w-5 h-5 text-gray-600"
                     strokeWidth={1.5}
                   />
                   <span className="flex-1 text-left">{item.label}</span>
                   <motion.div
-                    animate={{
-                      rotate: expandedItems.includes(index) ? 90 : 0,
-                    }}
+                    animate={{ rotate: expandedItems.includes(index) ? 90 : 0 }}
                     transition={{ duration: 0.2 }}
                   >
                     <ChevronRight className="w-4 h-4" />
                   </motion.div>
                 </button>
               ) : (
-                // Link for regular items
+                // Regular link item
                 <Link
                   href={item.path}
                   className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
@@ -91,32 +90,34 @@ export default function SidebarContent({
                 </Link>
               )}
 
-              {/* Submenu */}
-              {item.hasSubmenu && expandedItems.includes(index) && (
-                <motion.ul
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: "auto", opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  className="ml-8 mt-1 space-y-1"
-                >
-                  <li>
-                    <Link
-                      href="/settings/account"
-                      className="block px-3 py-2 text-sm text-gray-600 hover:text-primary rounded-lg hover:bg-gray-50 transition-colors"
-                    >
-                      Account Settings
-                    </Link>
-                  </li>
-                  <li>
-                    <Link
-                      href="/settings/users"
-                      className="block px-3 py-2 text-sm text-gray-600 hover:text-primary rounded-lg hover:bg-gray-50 transition-colors"
-                    >
-                      User Management
-                    </Link>
-                  </li>
-                </motion.ul>
-              )}
+              {/* Submenu children */}
+              <AnimatePresence initial={false}>
+                {item.hasSubmenu && expandedItems.includes(index) && (
+                  <motion.ul
+                    key="submenu"
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.2, ease: "easeInOut" }}
+                    className="ml-8 mt-1 space-y-1 overflow-hidden"
+                  >
+                    {item.children?.map((child, childIndex) => (
+                      <li key={childIndex}>
+                        <Link
+                          href={child.path}
+                          className={`block px-3 py-2 text-sm rounded-lg transition-colors font-medium ${
+                            pathname === child.path
+                              ? "bg-primary text-white shadow-sm"
+                              : "text-gray-600 hover:text-primary hover:bg-gray-50"
+                          }`}
+                        >
+                          {child.label}
+                        </Link>
+                      </li>
+                    ))}
+                  </motion.ul>
+                )}
+              </AnimatePresence>
             </motion.li>
           ))}
         </ul>
