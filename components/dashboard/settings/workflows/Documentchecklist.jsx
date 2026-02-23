@@ -416,7 +416,7 @@ export default function DocumentChecklist() {
               </div>
             </div>
 
-            <DialogFooter className="gap-2 sm:gap-0">
+            <DialogFooter className="gap-2">
               <button
                 type="button"
                 onClick={() => {
@@ -784,7 +784,7 @@ export default function DocumentChecklist() {
               </label>
             </div>
 
-            <DialogFooter className="gap-2 sm:gap-0">
+            <DialogFooter className="gap-2">
               <button
                 type="button"
                 onClick={handleCloseDialog}
