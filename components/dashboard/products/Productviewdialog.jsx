@@ -32,8 +32,8 @@ export default function ProductViewDialog({ open, onOpenChange, product, onEdit 
 
   // Fetch full product details
   const { data, isLoading } = useQuery({
-    queryKey: ["/products", product?.id, accessToken],
-    queryFn: () => fetchWithToken(`/products/${product?.id}`, accessToken),
+    queryKey: [`/products/${product?.id}`, accessToken],
+    queryFn: fetchWithToken,
     enabled: !!accessToken && !!product?.id && open,
   });
 

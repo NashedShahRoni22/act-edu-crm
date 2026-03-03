@@ -57,13 +57,13 @@ export default function ProductFormDialog({
 }) {
   const { accessToken } = useAppContext();
   const [formData, setFormData] = useState(emptyForm);
-  console.log(formData);
+  console.log("editingProduct",editingProduct);
 
   const [availableBranches, setAvailableBranches] = useState([]);
 
   // Fetch partners
   const { data: partnersData, isLoading: loadingPartners } = useQuery({
-    queryKey: ["/partners", accessToken],
+    queryKey: ["/products", accessToken],
     queryFn: fetchWithToken,
     enabled: !!accessToken && open,
   });
@@ -88,10 +88,9 @@ export default function ProductFormDialog({
     if (editingProduct && open) {
       const loadProductData = async () => {
         try {
-          const response = await fetchWithToken(
-            `/products/${editingProduct.id}`,
-            accessToken,
-          );
+          const response = await fetchWithToken({
+            queryKey: [`/products/${editingProduct.id}`, accessToken],
+          });
           if (response?.data) {
             const productData = response.data;
             setFormData({
