@@ -69,9 +69,6 @@ export default function PartnersPage() {
     return typeMatch && cityMatch;
   });
 
-  console.log(partners);
-  
-
   // Calculate stats
   const stats = [
     {

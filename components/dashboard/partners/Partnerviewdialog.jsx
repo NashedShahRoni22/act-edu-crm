@@ -25,7 +25,12 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 
-export default function PartnerViewDialog({ open, onOpenChange, partner, onEdit }) {
+export default function PartnerViewDialog({
+  open,
+  onOpenChange,
+  partner,
+  onEdit,
+}) {
   const { accessToken } = useAppContext();
 
   // Fetch full partner details
@@ -189,14 +194,12 @@ export default function PartnerViewDialog({ open, onOpenChange, partner, onEdit 
                 </h3>
                 <div className="bg-gray-50 rounded-lg p-4">
                   {partnerData.street && (
-                    <p className="text-sm text-gray-900">{partnerData.street}</p>
+                    <p className="text-sm text-gray-900">
+                      {partnerData.street}
+                    </p>
                   )}
                   <p className="text-sm text-gray-900">
-                    {[
-                      partnerData.city,
-                      partnerData.state,
-                      partnerData.zip_code,
-                    ]
+                    {[partnerData.city, partnerData.state, partnerData.zip_code]
                       .filter(Boolean)
                       .join(", ")}
                   </p>
@@ -217,14 +220,16 @@ export default function PartnerViewDialog({ open, onOpenChange, partner, onEdit 
                   Workflows
                 </h3>
                 <div className="flex flex-wrap gap-2">
-                  {partnerData.workflow_display.split(", ").map((workflow, idx) => (
-                    <span
-                      key={idx}
-                      className="px-3 py-1.5 bg-[#3B4CB8]/10 text-[#3B4CB8] rounded-full text-xs font-medium"
-                    >
-                      {workflow}
-                    </span>
-                  ))}
+                  {partnerData.workflow_display
+                    .split(", ")
+                    .map((workflow, idx) => (
+                      <span
+                        key={idx}
+                        className="px-3 py-1.5 bg-[#3B4CB8]/10 text-[#3B4CB8] rounded-full text-xs font-medium"
+                      >
+                        {workflow}
+                      </span>
+                    ))}
                 </div>
               </div>
             )}
@@ -261,7 +266,9 @@ export default function PartnerViewDialog({ open, onOpenChange, partner, onEdit 
 
             {/* Stats */}
             <div>
-              <h3 className="text-sm font-semibold text-gray-900 mb-3">Statistics</h3>
+              <h3 className="text-sm font-semibold text-gray-900 mb-3">
+                Statistics
+              </h3>
               <div className="grid grid-cols-3 gap-4">
                 <div className="bg-[#EEF2FF] rounded-lg p-4 text-center">
                   <p className="text-2xl font-bold text-gray-900">

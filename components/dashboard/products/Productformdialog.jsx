@@ -57,8 +57,6 @@ export default function ProductFormDialog({
 }) {
   const { accessToken } = useAppContext();
   const [formData, setFormData] = useState(emptyForm);
-  console.log("editingProduct",editingProduct);
-
   const [availableBranches, setAvailableBranches] = useState([]);
 
   // Fetch partners
