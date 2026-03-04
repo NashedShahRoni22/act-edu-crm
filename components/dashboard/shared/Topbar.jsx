@@ -33,14 +33,16 @@ export default function Topbar({ toggleSidebar }) {
           </button>
 
           {/* Add Client Button */}
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            className="hidden sm:flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Add Client</span>
-          </motion.button>
+          <Link href={"/dashboard/add-client"}>
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="hidden sm:flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Add Client</span>
+            </motion.button>
+          </Link>
 
           {/* Search Bar */}
           <div className="hidden md:flex items-center flex-1 max-w-md">
