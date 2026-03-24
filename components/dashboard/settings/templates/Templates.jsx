@@ -9,32 +9,33 @@ import {
   Plus,
   Loader2,
   Mail,
+  MessageSquare,
   X,
   Check,
-  FileText,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
-import EmailTemplateCard from "./EmailTemplateCard";
+import TemplateCard from "./TemplateCard";
 
 const emptyForm = {
   title: "",
+  type: "email",
   subject: "",
   body: "",
 };
 
-export default function EmailTemplates() {
+export default function Templates() {
   const { accessToken } = useAppContext();
   const queryClient = useQueryClient();
 
+  const [activeType, setActiveType] = useState("email");
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState(emptyForm);
 
-  // Fetch list with type=email query parameter
   const { data, isLoading, error } = useQuery({
-    queryKey: ["/email-templates", "email", accessToken],
+    queryKey: ["/email-templates", activeType, accessToken],
     queryFn: async () => {
       const response = await fetchWithToken({
-        queryKey: ["/email-templates?type=email", accessToken],
+        queryKey: [`/email-templates?type=${activeType}`, accessToken],
       });
       return response;
     },
@@ -77,19 +78,16 @@ export default function EmailTemplates() {
     onError: () => toast.error("Failed to delete template"),
   });
 
-  // Reset form
   const resetForm = () => {
-    setFormData(emptyForm);
+    setFormData({ ...emptyForm, type: activeType });
     setShowForm(false);
   };
 
-  // Open add form
   const handleAdd = () => {
-    setFormData(emptyForm);
+    setFormData({ ...emptyForm, type: activeType });
     setShowForm(true);
   };
 
-  // Handle submit
   const handleSubmit = (e) => {
     e.preventDefault();
 
@@ -98,7 +96,12 @@ export default function EmailTemplates() {
       return;
     }
 
-    if (!formData.subject.trim()) {
+    if (!["email", "sms"].includes(formData.type)) {
+      toast.error("Type must be email or sms");
+      return;
+    }
+
+    if (formData.type === "email" && !formData.subject.trim()) {
       toast.error("Subject is required");
       return;
     }
@@ -110,7 +113,10 @@ export default function EmailTemplates() {
 
     const fd = new FormData();
     fd.append("title", formData.title.trim());
-    fd.append("subject", formData.subject.trim());
+    fd.append("type", formData.type);
+    if (formData.type === "email") {
+      fd.append("subject", formData.subject.trim());
+    }
     fd.append("body", formData.body.trim());
 
     createMutation.mutate(fd);
@@ -125,7 +131,7 @@ export default function EmailTemplates() {
 
   if (isLoading) {
     return (
-      <div className="bg-white rounded-lg border border-gray-200 p-6 flex items-center justify-center min-h-[400px]">
+      <div className="bg-white rounded-lg border border-gray-200 p-6 flex items-center justify-center min-h-100">
         <Loader2 className="w-8 h-8 text-primary animate-spin" />
       </div>
     );
@@ -135,7 +141,7 @@ export default function EmailTemplates() {
     return (
       <div className="bg-white rounded-lg border border-gray-200 p-6">
         <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-          <p className="text-sm text-red-800">Failed to load email templates</p>
+          <p className="text-sm text-red-800">Failed to load templates</p>
         </div>
       </div>
     );
@@ -150,9 +156,9 @@ export default function EmailTemplates() {
       {/* Top Bar */}
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-semibold text-gray-900">Email Templates</h3>
+          <h3 className="text-lg font-semibold text-gray-900">Templates</h3>
           <p className="text-sm text-gray-500 mt-1">
-            Create and manage reusable email templates
+            Create and manage reusable email and SMS templates
           </p>
         </div>
         {!showForm && (
@@ -168,6 +174,35 @@ export default function EmailTemplates() {
         )}
       </div>
 
+      <div className="inline-flex rounded-lg border border-gray-200 bg-white p-1">
+        <button
+          onClick={() => {
+            setActiveType("email");
+            setShowForm(false);
+          }}
+          className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
+            activeType === "email"
+              ? "bg-primary text-white"
+              : "text-gray-600 hover:bg-gray-100"
+          }`}
+        >
+          Email
+        </button>
+        <button
+          onClick={() => {
+            setActiveType("sms");
+            setShowForm(false);
+          }}
+          className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
+            activeType === "sms"
+              ? "bg-primary text-white"
+              : "text-gray-600 hover:bg-gray-100"
+          }`}
+        >
+          SMS
+        </button>
+      </div>
+
       {/* Add Form */}
       <AnimatePresence>
         {showForm && (
@@ -180,9 +215,13 @@ export default function EmailTemplates() {
             {/* Form Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gray-50">
               <div className="flex items-center gap-2">
-                <Mail className="w-5 h-5 text-primary" />
+                {formData.type === "email" ? (
+                  <Mail className="w-5 h-5 text-primary" />
+                ) : (
+                  <MessageSquare className="w-5 h-5 text-primary" />
+                )}
                 <h3 className="text-base font-semibold text-gray-900">
-                  Add Email Template
+                  Add Template
                 </h3>
               </div>
               <button
@@ -205,44 +244,65 @@ export default function EmailTemplates() {
                   onChange={(e) =>
                     setFormData((p) => ({ ...p, title: e.target.value }))
                   }
-                  placeholder="e.g. Welcome Email"
+                  placeholder={
+                    formData.type === "email" ? "e.g. Welcome Email" : "e.g. Reminder SMS"
+                  }
                   className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
                 />
               </div>
 
-              {/* Subject */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  Email Subject <span className="text-red-500">*</span>
+                  Type <span className="text-red-500">*</span>
                 </label>
-                <input
-                  type="text"
-                  value={formData.subject}
+                <select
+                  value={formData.type}
                   onChange={(e) =>
-                    setFormData((p) => ({ ...p, subject: e.target.value }))
+                    setFormData((p) => ({ ...p, type: e.target.value }))
                   }
-                  placeholder="e.g. Welcome to our platform"
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
-                />
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
+                >
+                  <option value="email">Email</option>
+                  <option value="sms">SMS</option>
+                </select>
               </div>
+
+              {formData.type === "email" && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    Email Subject <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.subject}
+                    onChange={(e) =>
+                      setFormData((p) => ({ ...p, subject: e.target.value }))
+                    }
+                    placeholder="e.g. Welcome to our platform"
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
+                  />
+                </div>
+              )}
 
               {/* Body */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  Email Body <span className="text-red-500">*</span>
+                  {formData.type === "email" ? "Email Body" : "SMS Body"}{" "}
+                  <span className="text-red-500">*</span>
                 </label>
                 <textarea
                   value={formData.body}
                   onChange={(e) =>
                     setFormData((p) => ({ ...p, body: e.target.value }))
                   }
-                  placeholder="Enter the email body content..."
-                  rows={12}
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all resize-none font-mono"
+                  placeholder={
+                    formData.type === "email"
+                      ? "Enter the email body content..."
+                      : "Enter the SMS message content..."
+                  }
+                  rows={formData.type === "email" ? 12 : 6}
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
                 />
-                <p className="text-xs text-gray-500 mt-1.5">
-                  You can use variables like {"{name}"}, {"{email}"}, etc.
-                </p>
               </div>
 
               {/* Form Actions */}
@@ -282,8 +342,14 @@ export default function EmailTemplates() {
       {/* Templates Grid */}
       {templates.length === 0 && !showForm ? (
         <div className="bg-white rounded-lg border border-gray-200 p-12 flex flex-col items-center gap-3">
-          <Mail className="w-12 h-12 text-gray-300" />
-          <p className="text-sm text-gray-500">No email templates created yet</p>
+          {activeType === "email" ? (
+            <Mail className="w-12 h-12 text-gray-300" />
+          ) : (
+            <MessageSquare className="w-12 h-12 text-gray-300" />
+          )}
+          <p className="text-sm text-gray-500">
+            No {activeType.toUpperCase()} templates created yet
+          </p>
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
@@ -297,7 +363,7 @@ export default function EmailTemplates() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {templates.map((template, index) => (
-            <EmailTemplateCard
+            <TemplateCard
               key={template.id}
               template={template}
               index={index}

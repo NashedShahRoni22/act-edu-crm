@@ -10,9 +10,9 @@ import {
   Trash2,
   Loader2,
   Mail,
+  MessageSquare,
   Eye,
   Check,
-  X,
   FileText,
   Paperclip,
   Calendar,
@@ -25,13 +25,14 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "react-hot-toast";
 
-export default function EmailTemplateCard({ template, index, onDelete, isDeleting }) {
+export default function TemplateCard({ template, index, onDelete, isDeleting }) {
   const { accessToken } = useAppContext();
   const queryClient = useQueryClient();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [formData, setFormData] = useState({
     title: "",
+    type: "email",
     subject: "",
     body: "",
   });
@@ -44,8 +45,6 @@ export default function EmailTemplateCard({ template, index, onDelete, isDeletin
   });
 
   const templateDetails = detailData?.data || template;
-  console.log(templateDetails);
-  
 
   // Update mutation
   const updateMutation = useMutation({
@@ -69,6 +68,7 @@ export default function EmailTemplateCard({ template, index, onDelete, isDeletin
     if (isEditMode && detailData?.data) {
       setFormData({
         title: templateDetails.title || "",
+        type: templateDetails.type || "email",
         subject: templateDetails.subject || "",
         body: templateDetails.body || "",
       });
@@ -78,20 +78,6 @@ export default function EmailTemplateCard({ template, index, onDelete, isDeletin
   const handleViewDetails = () => {
     setIsDialogOpen(true);
     setIsEditMode(false);
-  };
-
-  const handleEditClick = () => {
-    if (detailData?.data) {
-      setFormData({
-        title: templateDetails.title || "",
-        subject: templateDetails.subject || "",
-        body: templateDetails.body || "",
-      });
-      setIsEditMode(true);
-    } else {
-      setIsDialogOpen(true);
-      setIsEditMode(true);
-    }
   };
 
   const handleCloseDialog = () => {
@@ -107,7 +93,12 @@ export default function EmailTemplateCard({ template, index, onDelete, isDeletin
       return;
     }
 
-    if (!formData.subject.trim()) {
+    if (!["email", "sms"].includes(formData.type)) {
+      toast.error("Type must be email or sms");
+      return;
+    }
+
+    if (formData.type === "email" && !formData.subject.trim()) {
       toast.error("Subject is required");
       return;
     }
@@ -120,7 +111,10 @@ export default function EmailTemplateCard({ template, index, onDelete, isDeletin
     const fd = new FormData();
     fd.append("_method", "PUT");
     fd.append("title", formData.title.trim());
-    fd.append("subject", formData.subject.trim());
+    fd.append("type", formData.type);
+    if (formData.type === "email") {
+      fd.append("subject", formData.subject.trim());
+    }
     fd.append("body", formData.body.trim());
 
     updateMutation.mutate(fd);
@@ -137,16 +131,23 @@ export default function EmailTemplateCard({ template, index, onDelete, isDeletin
         <div className="p-6">
           <div className="flex items-start justify-between mb-3">
             <div className="space-y-3">
-              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0 mt-1">
-                <Mail className="w-5 h-5 text-primary" />
+              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 mt-1">
+                {template.type === "sms" ? (
+                  <MessageSquare className="w-5 h-5 text-primary" />
+                ) : (
+                  <Mail className="w-5 h-5 text-primary" />
+                )}
               </div>
               <div className="">
-                <h4 className="text-sm font-semibold text-gray-900 mb-1">
-                  {template.title}
-                </h4>
-                <p className="text-xs font-medium text-gray-600 mb-2">
-                  {template.subject}
-                </p>
+                <div className="flex items-center gap-2 mb-1">
+                  <h4 className="text-sm font-semibold text-gray-900">{template.title}</h4>
+                  <span className="text-[10px] uppercase font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-gray-700 border border-gray-200">
+                    {template.type || "email"}
+                  </span>
+                </div>
+                {template.type !== "sms" && !!template.subject && (
+                  <p className="text-xs font-medium text-gray-600 mb-2">{template.subject}</p>
+                )}
                 <p className="text-xs text-gray-500 line-clamp-2">
                   {template.body_preview}
                 </p>
@@ -209,8 +210,12 @@ export default function EmailTemplateCard({ template, index, onDelete, isDeletin
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Mail className="w-5 h-5 text-primary" />
-              {isEditMode ? "Edit Email Template" : "Email Template Details"}
+              {templateDetails.type === "sms" ? (
+                <MessageSquare className="w-5 h-5 text-primary" />
+              ) : (
+                <Mail className="w-5 h-5 text-primary" />
+              )}
+              {isEditMode ? "Edit Template" : "Template Details"}
             </DialogTitle>
           </DialogHeader>
 
@@ -237,39 +242,58 @@ export default function EmailTemplateCard({ template, index, onDelete, isDeletin
                 />
               </div>
 
-              {/* Subject */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  Email Subject <span className="text-red-500">*</span>
+                  Type <span className="text-red-500">*</span>
                 </label>
-                <input
-                  type="text"
-                  value={formData.subject}
+                <select
+                  value={formData.type}
                   onChange={(e) =>
-                    setFormData((p) => ({ ...p, subject: e.target.value }))
+                    setFormData((p) => ({ ...p, type: e.target.value }))
                   }
-                  placeholder="e.g. Welcome to our platform"
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
-                />
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
+                >
+                  <option value="email">Email</option>
+                  <option value="sms">SMS</option>
+                </select>
               </div>
+
+              {formData.type === "email" && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    Email Subject <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.subject}
+                    onChange={(e) =>
+                      setFormData((p) => ({ ...p, subject: e.target.value }))
+                    }
+                    placeholder="e.g. Welcome to our platform"
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
+                  />
+                </div>
+              )}
 
               {/* Body */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  Email Body <span className="text-red-500">*</span>
+                  {formData.type === "email" ? "Email Body" : "SMS Body"}{" "}
+                  <span className="text-red-500">*</span>
                 </label>
                 <textarea
                   value={formData.body}
                   onChange={(e) =>
                     setFormData((p) => ({ ...p, body: e.target.value }))
                   }
-                  placeholder="Enter the email body content..."
-                  rows={12}
+                  placeholder={
+                    formData.type === "email"
+                      ? "Enter the email body content..."
+                      : "Enter the SMS message content..."
+                  }
+                  rows={formData.type === "email" ? 12 : 6}
                   className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all resize-none font-mono"
                 />
-                <p className="text-xs text-gray-500 mt-1.5">
-                  You can use variables like {"{name}"}, {"{email}"}, etc.
-                </p>
               </div>
 
               {/* Form Actions */}
@@ -319,18 +343,30 @@ export default function EmailTemplateCard({ template, index, onDelete, isDeletin
 
                 <div>
                   <label className="text-sm font-medium text-gray-500 flex items-center gap-2">
-                    <Mail className="w-4 h-4" />
-                    Email Subject
+                    <FileText className="w-4 h-4" />
+                    Type
                   </label>
                   <p className="mt-1 text-sm font-medium text-gray-900">
-                    {templateDetails.subject}
+                    {(templateDetails.type || "email").toUpperCase()}
                   </p>
                 </div>
+
+                {templateDetails.type !== "sms" && (
+                  <div>
+                    <label className="text-sm font-medium text-gray-500 flex items-center gap-2">
+                      <Mail className="w-4 h-4" />
+                      Email Subject
+                    </label>
+                    <p className="mt-1 text-sm font-medium text-gray-900">
+                      {templateDetails.subject}
+                    </p>
+                  </div>
+                )}
 
                 <div>
                   <label className="text-sm font-medium text-gray-500 mb-2 flex items-center gap-2">
                     <FileText className="w-4 h-4" />
-                    Email Body
+                    {templateDetails.type === "sms" ? "SMS Body" : "Email Body"}
                   </label>
                   <div className="mt-2 p-4 bg-gray-50 rounded-lg border border-gray-200 max-h-96 overflow-y-auto">
                     <pre className="text-sm text-gray-700 whitespace-pre-wrap font-sans">
@@ -370,6 +406,7 @@ export default function EmailTemplateCard({ template, index, onDelete, isDeletin
                   onClick={() => {
                     setFormData({
                       title: templateDetails.title || "",
+                      type: templateDetails.type || "email",
                       subject: templateDetails.subject || "",
                       body: templateDetails.body || "",
                     });

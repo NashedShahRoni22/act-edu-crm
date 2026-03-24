@@ -4,7 +4,7 @@ import Accounts from "./Accounts";
 import Email from "./Email";
 import Preferences from "./Preferences";
 import TagManagement from "./Tagmanagement";
-import EmailTemplates from "./templates/EmailTemplates";
+import Templates from "./templates/Templates";
 import Workflowpage from "./Workflowpage";
 
 export default function SectionContainer({ activeNav }) {
@@ -23,7 +23,7 @@ export default function SectionContainer({ activeNav }) {
       case "email":
         return <Email/>;
       case "templates":
-        return <EmailTemplates />;
+        return <Templates />;
       case "phone-settings":
         return <DefaultPlaceholder section="Phone Settings" />;
       case "lead-forms":
