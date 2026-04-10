@@ -2,6 +2,7 @@
 
 import Accounts from "./Accounts";
 import Email from "./Email";
+import LeadForms from "./LeadForms";
 import Preferences from "./Preferences";
 import TagManagement from "./Tagmanagement";
 import Templates from "./templates/Templates";
@@ -27,7 +28,7 @@ export default function SectionContainer({ activeNav }) {
       case "phone-settings":
         return <DefaultPlaceholder section="Phone Settings" />;
       case "lead-forms":
-        return <DefaultPlaceholder section="Lead Forms" />;
+        return <LeadForms/>;
       case "advanced-automation":
         return <DefaultPlaceholder section="Advanced Automation Settings" />;
       case "custom-fields":

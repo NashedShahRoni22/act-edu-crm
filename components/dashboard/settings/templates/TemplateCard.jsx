@@ -5,6 +5,7 @@ import { fetchWithToken, postWithToken } from "@/helpers/api";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+import dynamic from "next/dynamic";
 import {
   Edit2,
   Trash2,
@@ -25,6 +26,11 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "react-hot-toast";
 
+const RichTextEditor = dynamic(() => import("./RichTextEditor"), {
+  ssr: false,
+  loading: () => <div className="w-full h-64 bg-gray-100 rounded animate-pulse" />,
+});
+
 export default function TemplateCard({ template, index, onDelete, isDeleting }) {
   const { accessToken } = useAppContext();
   const queryClient = useQueryClient();
@@ -44,7 +50,20 @@ export default function TemplateCard({ template, index, onDelete, isDeleting }) 
     enabled: !!accessToken && isDialogOpen,
   });
 
+  // Fetch placeholders
+  const { data: placeholdersData } = useQuery({
+    queryKey: ["/email-templates/placeholders", accessToken],
+    queryFn: async () => {
+      const response = await fetchWithToken({
+        queryKey: [`/email-templates/placeholders`, accessToken],
+      });
+      return response;
+    },
+    enabled: !!accessToken && isDialogOpen && isEditMode,
+  });
+
   const templateDetails = detailData?.data || template;
+  const placeholders = placeholdersData?.data || [];
 
   // Update mutation
   const updateMutation = useMutation({
@@ -281,19 +300,25 @@ export default function TemplateCard({ template, index, onDelete, isDeleting }) 
                   {formData.type === "email" ? "Email Body" : "SMS Body"}{" "}
                   <span className="text-red-500">*</span>
                 </label>
-                <textarea
-                  value={formData.body}
-                  onChange={(e) =>
-                    setFormData((p) => ({ ...p, body: e.target.value }))
-                  }
-                  placeholder={
-                    formData.type === "email"
-                      ? "Enter the email body content..."
-                      : "Enter the SMS message content..."
-                  }
-                  rows={formData.type === "email" ? 12 : 6}
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all resize-none font-mono"
-                />
+                {formData.type === "email" ? (
+                  <RichTextEditor
+                    value={formData.body}
+                    onChange={(content) =>
+                      setFormData((p) => ({ ...p, body: content }))
+                    }
+                    placeholder="Enter the email body content..."
+                    placeholders={placeholders}
+                  />
+                ) : (
+                  <RichTextEditor
+                    value={formData.body}
+                    onChange={(content) =>
+                      setFormData((p) => ({ ...p, body: content }))
+                    }
+                    placeholder="Enter the SMS message content..."
+                    placeholders={placeholders}
+                  />
+                )}
               </div>
 
               {/* Form Actions */}
@@ -368,10 +393,11 @@ export default function TemplateCard({ template, index, onDelete, isDeleting }) 
                     <FileText className="w-4 h-4" />
                     {templateDetails.type === "sms" ? "SMS Body" : "Email Body"}
                   </label>
-                  <div className="mt-2 p-4 bg-gray-50 rounded-lg border border-gray-200 max-h-96 overflow-y-auto">
-                    <pre className="text-sm text-gray-700 whitespace-pre-wrap font-sans">
-                      {templateDetails.body}
-                    </pre>
+                  <div className="mt-2 p-4 bg-gray-50 rounded-lg border border-gray-200 max-h-96 overflow-y-auto prose prose-sm max-w-none">
+                    <div
+                      dangerouslySetInnerHTML={{ __html: templateDetails.body }}
+                      className="text-sm text-gray-700"
+                    />
                   </div>
                 </div>
               </div>

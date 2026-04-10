@@ -4,17 +4,11 @@ import { useAppContext } from "@/context/context";
 import { fetchWithToken, postWithToken } from "@/helpers/api";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import {
-  Plus,
-  Loader2,
-  Mail,
-  MessageSquare,
-  X,
-  Check,
-} from "lucide-react";
+import { motion } from "framer-motion";
+import { Plus, Loader2, Mail, MessageSquare } from "lucide-react";
 import { toast } from "react-hot-toast";
 import TemplateCard from "./TemplateCard";
+import TemplateFormDialog from "./TemplateFormDialog";
 
 const emptyForm = {
   title: "",
@@ -43,6 +37,23 @@ export default function Templates() {
   });
 
   const templates = data?.data || [];
+
+  const {
+    data: placeholdersData,
+    isLoading: isPlaceholdersLoading,
+    error: placeholdersError,
+  } = useQuery({
+    queryKey: ["/email-templates/placeholders", accessToken],
+    queryFn: async () => {
+      const response = await fetchWithToken({
+        queryKey: [`/email-templates/placeholders`, accessToken],
+      });
+      return response;
+    },
+    enabled: !!accessToken,
+  });
+
+  const placeholders = placeholdersData?.data || [];
 
   // Create mutation
   const createMutation = useMutation({
@@ -124,7 +135,11 @@ export default function Templates() {
 
   // Handle delete
   const handleDelete = (id, title) => {
-    if (window.confirm(`Delete template "${title}"? This action cannot be undone.`)) {
+    if (
+      window.confirm(
+        `Delete template "${title}"? This action cannot be undone.`,
+      )
+    ) {
       deleteMutation.mutate(id);
     }
   };
@@ -203,141 +218,17 @@ export default function Templates() {
         </button>
       </div>
 
-      {/* Add Form */}
-      <AnimatePresence>
-        {showForm && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="bg-white rounded-lg border border-gray-200 overflow-hidden"
-          >
-            {/* Form Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gray-50">
-              <div className="flex items-center gap-2">
-                {formData.type === "email" ? (
-                  <Mail className="w-5 h-5 text-primary" />
-                ) : (
-                  <MessageSquare className="w-5 h-5 text-primary" />
-                )}
-                <h3 className="text-base font-semibold text-gray-900">
-                  Add Template
-                </h3>
-              </div>
-              <button
-                onClick={resetForm}
-                className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-200 rounded-lg transition-colors"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <form onSubmit={handleSubmit} className="p-6 space-y-6">
-              {/* Title */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  Template Title <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={formData.title}
-                  onChange={(e) =>
-                    setFormData((p) => ({ ...p, title: e.target.value }))
-                  }
-                  placeholder={
-                    formData.type === "email" ? "e.g. Welcome Email" : "e.g. Reminder SMS"
-                  }
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  Type <span className="text-red-500">*</span>
-                </label>
-                <select
-                  value={formData.type}
-                  onChange={(e) =>
-                    setFormData((p) => ({ ...p, type: e.target.value }))
-                  }
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
-                >
-                  <option value="email">Email</option>
-                  <option value="sms">SMS</option>
-                </select>
-              </div>
-
-              {formData.type === "email" && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                    Email Subject <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.subject}
-                    onChange={(e) =>
-                      setFormData((p) => ({ ...p, subject: e.target.value }))
-                    }
-                    placeholder="e.g. Welcome to our platform"
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
-                  />
-                </div>
-              )}
-
-              {/* Body */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  {formData.type === "email" ? "Email Body" : "SMS Body"}{" "}
-                  <span className="text-red-500">*</span>
-                </label>
-                <textarea
-                  value={formData.body}
-                  onChange={(e) =>
-                    setFormData((p) => ({ ...p, body: e.target.value }))
-                  }
-                  placeholder={
-                    formData.type === "email"
-                      ? "Enter the email body content..."
-                      : "Enter the SMS message content..."
-                  }
-                  rows={formData.type === "email" ? 12 : 6}
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
-                />
-              </div>
-
-              {/* Form Actions */}
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">
-                <button
-                  type="button"
-                  onClick={resetForm}
-                  className="px-5 py-2.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-                >
-                  Cancel
-                </button>
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  type="submit"
-                  disabled={createMutation.isPending}
-                  className="flex items-center gap-2 px-5 py-2.5 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary-deep transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {createMutation.isPending ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Creating...
-                    </>
-                  ) : (
-                    <>
-                      <Check className="w-4 h-4" />
-                      Create Template
-                    </>
-                  )}
-                </motion.button>
-              </div>
-            </form>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Add Form Dialog */}
+      <TemplateFormDialog
+        formData={formData}
+        setFormData={setFormData}
+        placeholders={placeholders}
+        onSubmit={handleSubmit}
+        onCancel={resetForm}
+        isLoading={createMutation.isPending}
+        activeType={activeType}
+        isOpen={showForm}
+      />
 
       {/* Templates Grid */}
       {templates.length === 0 && !showForm ? (
