@@ -11,6 +11,7 @@ import {
   UserCog,
   UsersRound,
   Wrench,
+  Workflow,
 } from "lucide-react";
 
 export const menuItems = [
@@ -96,6 +97,11 @@ export const menuItems = [
         path: "/dashboard/roles",
       },
     ]
+  },
+  {
+    icon: Workflow,
+    label: "Tasks",
+    path: "/dashboard/tasks",
   },
   {
     icon: UsersRound,
