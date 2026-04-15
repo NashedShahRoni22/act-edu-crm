@@ -7,13 +7,6 @@ import {
   UserCheck,
   Target,
   Upload,
-  Eye,
-  Edit,
-  MessageSquare,
-  MoreVertical,
-  Phone,
-  Mail,
-  Clock,
   Search,
   Plus,
 } from "lucide-react";
@@ -23,6 +16,7 @@ import { useAppContext } from "@/context/context";
 import { useQuery } from "@tanstack/react-query";
 import { fetchWithToken } from "@/helpers/api";
 import Link from "next/link";
+import ContactCard from "../contacts/ContactCard";
 
 const PAGE_SIZE = 9; // 3-col grid looks best with multiples of 3
 
@@ -379,101 +373,15 @@ export default function ContactsPage() {
               : "—";
 
             return (
-              <motion.div
-                key={contact.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.04 }}
-                className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-md transition-all border border-gray-100"
-              >
-                {/* Card header */}
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <div
-                      className={`${color} w-14 h-14 rounded-full flex items-center justify-center flex-shrink-0`}
-                    >
-                      <span className="text-white text-lg font-bold">
-                        {initials}
-                      </span>
-                    </div>
-                    <div>
-                      <h3 className="text-base font-semibold text-gray-900">
-                        {contact.first_name} {contact.last_name}
-                      </h3>
-                      <span
-                        className={`inline-block mt-1 px-2.5 py-0.5 rounded-md text-xs font-medium ${badgeStyle}`}
-                      >
-                        {contact.status}
-                      </span>
-                    </div>
-                  </div>
-                  <button className="text-gray-400 hover:text-gray-600 transition-colors">
-                    <MoreVertical className="w-5 h-5" />
-                  </button>
-                </div>
-
-                {/* Details */}
-                <div className="space-y-2.5 mb-4">
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <Phone className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                    <span>{contact.phone || "—"}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <Mail className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                    <span className="truncate">{contact.email || "—"}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <Clock className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                    <span>Added: {addedDate}</span>
-                  </div>
-                </div>
-
-                {/* Applications pill */}
-                {contact.applications?.length > 0 && (
-                  <div className="mb-4">
-                    <div className="flex flex-wrap gap-1">
-                      {contact.applications.map((app) => (
-                        <span
-                          key={app.id}
-                          className="inline-flex items-center px-2 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-100 rounded-full text-xs font-medium"
-                        >
-                          {app.workflow?.name ?? `App #${app.id}`}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Footer */}
-                <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-                  <div className="text-sm text-gray-500">
-                    Source:{" "}
-                    <span className="font-medium text-gray-900">
-                      {contact.source || "—"}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <button
-                      className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
-                      title="View"
-                    >
-                      <Eye className="w-4 h-4" />
-                    </button>
-                    <button
-                      className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                      title="Edit"
-                    >
-                      <Edit className="w-4 h-4" />
-                    </button>
-                    <button
-                      className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                      title="Message"
-                    >
-                      <MessageSquare className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              </motion.div>
+              <ContactCard
+                key={index}
+                contact={contact}
+                index={index}
+                badgeStyle={badgeStyle}
+                color={color}
+                initials={initials}
+                addedDate={addedDate}
+              />
             );
           })}
         </div>

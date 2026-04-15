@@ -192,7 +192,7 @@ export default function TaskViewDialog({
     onSuccess: (res) => {
       if (res.status === "success") {
         toast.success("Task deleted");
-        queryClient.invalidateQueries({ queryKey: ["/tasks"] });
+        queryClient.invalidateQueries({ queryKey: ["/tasks?filter=all"] });
         onOpenChange(false);
         onSuccess?.();
       }
@@ -357,7 +357,47 @@ export default function TaskViewDialog({
                     : "Not set"}
                 </p>
               </div>
+
+              <div>
+                <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">
+                  Related To
+                </p>
+                <p className="text-sm font-medium text-gray-900 capitalize">
+                  {fullTaskData.related_to_type}
+                </p>
+              </div>
             </div>
+
+            {/* Related Information */}
+            {fullTaskData.related_to_type !== "internal" && fullTaskData.related_to_id && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <p className="text-sm font-medium text-gray-900 mb-3 capitalize">
+                  Related {fullTaskData.related_to_type} Details
+                </p>
+                <div className="space-y-2 text-sm text-gray-700">
+                  {fullTaskData.related_to_type === "contact" && fullTaskData.contact && (
+                    <>
+                      <p><span className="font-medium">Name:</span> {fullTaskData.contact.first_name} {fullTaskData.contact.last_name}</p>
+                      <p><span className="font-medium">Email:</span> {fullTaskData.contact.email || "-"}</p>
+                      <p><span className="font-medium">Phone:</span> {fullTaskData.contact.phone || "-"}</p>
+                    </>
+                  )}
+                  {fullTaskData.related_to_type === "partner" && fullTaskData.partner && (
+                    <>
+                      <p><span className="font-medium">Name:</span> {fullTaskData.partner.name}</p>
+                      <p><span className="font-medium">Email:</span> {fullTaskData.partner.email || "-"}</p>
+                    </>
+                  )}
+                  {fullTaskData.related_to_type === "application" && fullTaskData.application && (
+                    <>
+                      <p><span className="font-medium">Workflow:</span> {fullTaskData.application.workflow?.name || "-"}</p>
+                      <p><span className="font-medium">Contact:</span> {fullTaskData.application.contact?.first_name} {fullTaskData.application.contact?.last_name}</p>
+                      <p><span className="font-medium">Status:</span> {fullTaskData.application.status}</p>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Description */}
             {fullTaskData.description && (
@@ -567,7 +607,7 @@ export default function TaskViewDialog({
                       className="bg-gray-50 p-3 rounded-lg"
                     >
                       <div className="flex items-start gap-2">
-                        <div className="w-6 h-6 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
+                        <div className="w-6 h-6 bg-primary/10 rounded-full flex items-center justify-center shrink-0">
                           <span className="text-xs font-semibold text-primary">
                             {commentItem.user?.first_name?.[0]}
                             {commentItem.user?.last_name?.[0]}

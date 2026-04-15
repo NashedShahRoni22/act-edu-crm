@@ -151,7 +151,7 @@ export default function Tasks() {
         <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
           {/* Status Filter */}
           <div className="flex gap-2">
-            {["all", "to_do", "in_progress", "in_review", "completed"].map(
+            {["all", "to_do", "in_progress", "on_review", "completed"].map(
               (status) => (
                 <button
                   key={status}

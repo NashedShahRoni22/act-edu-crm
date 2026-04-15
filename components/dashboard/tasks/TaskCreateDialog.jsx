@@ -69,11 +69,15 @@ const emptyReminder = {
   duration_type: "hours",
 };
 
-export default function TaskCreateDialog({ open, onOpenChange, onSuccess }) {
+export default function TaskCreateDialog({ open, onOpenChange, onSuccess, presetType, presetId }) {
   const { accessToken } = useAppContext();
   const queryClient = useQueryClient();
 
-  const [formData, setFormData] = useState(emptyForm);
+  const [formData, setFormData] = useState(
+    presetType && presetId
+      ? { ...emptyForm, related_to_type: presetType, related_to_id: presetId }
+      : emptyForm
+  );
   const [attachments, setAttachments] = useState([]);
   const [followers, setFollowers] = useState([]);
   const [followerInput, setFollowerInput] = useState("");
@@ -82,13 +86,34 @@ export default function TaskCreateDialog({ open, onOpenChange, onSuccess }) {
   // Fetch users
   const { data: usersData } = useQuery({
     queryKey: ["/users", accessToken],
-    queryFn: () =>
-      fetchWithToken({
-        queryKey: [`/users`, accessToken],
-      }),
+    queryFn: fetchWithToken,
     enabled: !!accessToken && open,
   });
   const users = usersData?.data || [];
+
+  // Fetch contacts
+  const { data: contactsData } = useQuery({
+    queryKey: ["/contacts", accessToken],
+    queryFn: fetchWithToken,
+    enabled: !!accessToken && open && formData.related_to_type === "contact",
+  });
+  const contacts = contactsData?.data || [];
+
+  // Fetch partners
+  const { data: partnersData } = useQuery({
+    queryKey: ["/partners", accessToken],
+    queryFn: fetchWithToken,
+    enabled: !!accessToken && open && formData.related_to_type === "partner",
+  });
+  const partners = partnersData?.data || [];
+
+  // Fetch applications
+  const { data: applicationsData } = useQuery({
+    queryKey: ["/applications", accessToken],
+    queryFn: fetchWithToken,
+    enabled: !!accessToken && open && formData.related_to_type === "application",
+  });
+  const applications = applicationsData?.data || [];
 
   // Create mutation
   const createMutation = useMutation({
@@ -141,7 +166,11 @@ export default function TaskCreateDialog({ open, onOpenChange, onSuccess }) {
   });
 
   const resetForm = () => {
-    setFormData(emptyForm);
+    if (presetType && presetId) {
+      setFormData({ ...emptyForm, related_to_type: presetType, related_to_id: presetId });
+    } else {
+      setFormData(emptyForm);
+    }
     setAttachments([]);
     setFollowers([]);
     setFollowerInput("");
@@ -198,6 +227,11 @@ export default function TaskCreateDialog({ open, onOpenChange, onSuccess }) {
   const handleSubmit = () => {
     if (!formData.title.trim()) {
       toast.error("Title is required");
+      return;
+    }
+
+    if (formData.related_to_type !== "internal" && !formData.related_to_id) {
+      toast.error("Related item is required when type is not Internal");
       return;
     }
 
@@ -320,6 +354,76 @@ export default function TaskCreateDialog({ open, onOpenChange, onSuccess }) {
               className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
             />
           </div>
+
+          {/* Related To Type & ID */}
+          {!presetType ? (
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-900 mb-2">
+                  Related To Type
+                </label>
+                <select
+                  value={formData.related_to_type}
+                  onChange={(e) => {
+                    handleChange("related_to_type", e.target.value);
+                    handleChange("related_to_id", "");
+                  }}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
+                >
+                  <option value="internal">Internal</option>
+                  <option value="contact">Contact</option>
+                  <option value="partner">Partner</option>
+                  <option value="application">Application</option>
+                </select>
+              </div>
+
+              {formData.related_to_type !== "internal" && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-900 mb-2">
+                    {formData.related_to_type === "contact"
+                      ? "Select Contact"
+                      : formData.related_to_type === "partner"
+                        ? "Select Partner"
+                        : "Select Application"}
+                    <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={formData.related_to_id}
+                    onChange={(e) => handleChange("related_to_id", e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
+                  >
+                    <option value="">
+                      Select{" "}
+                      {formData.related_to_type === "contact"
+                        ? "Contact"
+                        : formData.related_to_type === "partner"
+                          ? "Partner"
+                          : "Application"}
+                    </option>
+                    {formData.related_to_type === "contact" &&
+                      contacts.map((contact) => (
+                        <option key={contact.id} value={contact.id}>
+                          {contact.first_name} {contact.last_name}
+                        </option>
+                      ))}
+                    {formData.related_to_type === "partner" &&
+                      partners.map((partner) => (
+                        <option key={partner.id} value={partner.id}>
+                          {partner.name}
+                        </option>
+                      ))}
+                    {formData.related_to_type === "application" &&
+                      applications.map((app) => (
+                        <option key={app.id} value={app.id}>
+                          {app.workflow?.name} - Contact{" "}
+                          {app.contact?.first_name} {app.contact?.last_name}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+              )}
+            </div>
+          ) : null}
 
           {/* Description */}
           <div>

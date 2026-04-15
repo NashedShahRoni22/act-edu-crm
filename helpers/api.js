@@ -16,12 +16,13 @@ export const fetchWithToken = async ({ queryKey }) => {
 };
 
 // POST request with FormData
-export const postWithToken = async (endpoint, formData, token) => {
+export const postWithToken = async (endpoint, formData, token, customHeaders = {}) => {
   try {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
+        ...customHeaders,
       },
       body: formData,
     });
