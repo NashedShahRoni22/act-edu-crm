@@ -13,22 +13,14 @@ import {
   MapPin,
   Mail,
   Phone,
-  Smartphone,
   User,
   Search,
   Eye,
-  X,
-  Check,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
+import OfficesSkeleton from "../team/office/OfficesSkeleton";
+import OfficeFormDialog from "../team/office/OfficeFormDialog";
+import OfficeViewDialog from "../team/office/OfficeViewDialog";
 
 const emptyForm = {
   name: "",
@@ -50,6 +42,7 @@ export default function Offices() {
   const [showDialog, setShowDialog] = useState(false);
   const [editingOffice, setEditingOffice] = useState(null);
   const [viewingOffice, setViewingOffice] = useState(null);
+  const [viewLoadingId, setViewLoadingId] = useState(null);
   const [showViewDialog, setShowViewDialog] = useState(false);
   const [formData, setFormData] = useState(emptyForm);
   const [searchQuery, setSearchQuery] = useState("");
@@ -129,14 +122,17 @@ export default function Offices() {
 
   // Handle view office details
   const handleView = async (office) => {
+    setViewLoadingId(office.id);
     try {
-      const response = await fetchWithToken(`/offices/${office.id}`, accessToken);
-      if (response?.data) {
-        setViewingOffice(response.data);
-        setShowViewDialog(true);
-      }
+      const response = await fetchWithToken({
+        queryKey: [`/offices/${office.id}`, accessToken],
+      });
+      setViewingOffice(response?.data || response);
+      setShowViewDialog(true);
     } catch (error) {
       toast.error("Failed to load office details");
+    } finally {
+      setViewLoadingId(null);
     }
   };
 
@@ -177,11 +173,7 @@ export default function Offices() {
   const isPending = createMutation.isPending || updateMutation.isPending;
 
   if (isLoading) {
-    return (
-      <div className="bg-white rounded-lg border border-gray-200 p-6 flex items-center justify-center min-h-[400px]">
-        <Loader2 className="w-8 h-8 text-primary animate-spin" />
-      </div>
-    );
+    return <OfficesSkeleton />;
   }
 
   if (error) {
@@ -279,7 +271,7 @@ export default function Offices() {
                   <tr>
                     <td colSpan="5" className="px-6 py-12 text-center">
                       <p className="text-sm text-gray-500">
-                        No offices found matching "{searchQuery}"
+                        No offices found matching &quot;{searchQuery}&quot;
                       </p>
                     </td>
                   </tr>
@@ -295,7 +287,7 @@ export default function Offices() {
                       {/* Office Name */}
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                             <Building2 className="w-5 h-5 text-primary" />
                           </div>
                           <div>
@@ -310,7 +302,7 @@ export default function Offices() {
                       {/* Location */}
                       <td className="px-6 py-4">
                         <div className="flex items-start gap-2">
-                          <MapPin className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                          <MapPin className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
                           <div className="text-sm text-gray-900">
                             <p>{office.city}, {office.state}</p>
                             <p className="text-xs text-gray-500">{office.country}</p>
@@ -349,15 +341,20 @@ export default function Offices() {
                       {/* Actions */}
                       <td className="px-6 py-4 whitespace-nowrap text-right">
                         <div className="flex items-center justify-end gap-2">
-                          {/* <motion.button
+                          <motion.button
                             whileHover={{ scale: 1.1 }}
                             whileTap={{ scale: 0.9 }}
                             onClick={() => handleView(office)}
+                            disabled={viewLoadingId === office.id}
                             className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
                             title="View Details"
                           >
-                            <Eye className="w-4 h-4" />
-                          </motion.button> */}
+                            {viewLoadingId === office.id ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Eye className="w-4 h-4" />
+                            )}
+                          </motion.button>
                           <motion.button
                             whileHover={{ scale: 1.1 }}
                             whileTap={{ scale: 0.9 }}
@@ -389,318 +386,27 @@ export default function Offices() {
       )}
 
       {/* Add/Edit Dialog */}
-      <Dialog open={showDialog} onOpenChange={setShowDialog}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>
-              {editingOffice ? "Edit Office" : "Add New Office"}
-            </DialogTitle>
-            <DialogDescription>
-              {editingOffice
-                ? "Update the office information below."
-                : "Fill in the details to add a new office location."}
-            </DialogDescription>
-          </DialogHeader>
-
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Office Name */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Office Name <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={formData.name}
-                onChange={(e) => setFormData((p) => ({ ...p, name: e.target.value }))}
-                placeholder="e.g., Branch Dhaka"
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
-                required
-              />
-            </div>
-
-            {/* Address Section */}
-            <div className="space-y-4">
-              <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
-                <MapPin className="w-4 h-4" />
-                Address Information
-              </h3>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Street
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.street}
-                    onChange={(e) =>
-                      setFormData((p) => ({ ...p, street: e.target.value }))
-                    }
-                    placeholder="e.g., Tajmahal Road"
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    City
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.city}
-                    onChange={(e) =>
-                      setFormData((p) => ({ ...p, city: e.target.value }))
-                    }
-                    placeholder="e.g., Mohammadpur"
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    State
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.state}
-                    onChange={(e) =>
-                      setFormData((p) => ({ ...p, state: e.target.value }))
-                    }
-                    placeholder="e.g., Dhaka"
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Zip Code
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.zip_code}
-                    onChange={(e) =>
-                      setFormData((p) => ({ ...p, zip_code: e.target.value }))
-                    }
-                    placeholder="e.g., 1207"
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Country
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.country}
-                    onChange={(e) =>
-                      setFormData((p) => ({ ...p, country: e.target.value }))
-                    }
-                    placeholder="e.g., Bangladesh"
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Contact Section */}
-            <div className="space-y-4">
-              <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
-                <Phone className="w-4 h-4" />
-                Contact Information
-              </h3>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Email <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) =>
-                      setFormData((p) => ({ ...p, email: e.target.value }))
-                    }
-                    placeholder="email@example.com"
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Phone
-                  </label>
-                  <input
-                    type="tel"
-                    value={formData.phone}
-                    onChange={(e) =>
-                      setFormData((p) => ({ ...p, phone: e.target.value }))
-                    }
-                    placeholder="1234566"
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Mobile
-                  </label>
-                  <input
-                    type="tel"
-                    value={formData.mobile}
-                    onChange={(e) =>
-                      setFormData((p) => ({ ...p, mobile: e.target.value }))
-                    }
-                    placeholder="234522"
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Contact Person
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.contact_person}
-                    onChange={(e) =>
-                      setFormData((p) => ({ ...p, contact_person: e.target.value }))
-                    }
-                    placeholder="John Doe"
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Dialog Footer */}
-            <DialogFooter className="gap-2">
-              <button
-                type="button"
-                onClick={handleCloseDialog}
-                className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-              >
-                Cancel
-              </button>
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                type="submit"
-                disabled={isPending}
-                className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary-deep transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isPending ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  <>
-                    <Check className="w-4 h-4" />
-                    {editingOffice ? "Save Changes" : "Create Office"}
-                  </>
-                )}
-              </motion.button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <OfficeFormDialog
+        open={showDialog}
+        onOpenChange={setShowDialog}
+        editingOffice={editingOffice}
+        formData={formData}
+        setFormData={setFormData}
+        onSubmit={handleSubmit}
+        isPending={isPending}
+        onClose={handleCloseDialog}
+      />
 
       {/* View Details Dialog */}
-      <Dialog open={showViewDialog} onOpenChange={setShowViewDialog}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Building2 className="w-5 h-5 text-primary" />
-              {viewingOffice?.name}
-            </DialogTitle>
-            <DialogDescription>Office details and contact information</DialogDescription>
-          </DialogHeader>
-
-          {viewingOffice && (
-            <div className="space-y-6">
-              {/* Address */}
-              <div>
-                <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                  <MapPin className="w-4 h-4 text-primary" />
-                  Address
-                </h3>
-                <div className="bg-gray-50 rounded-lg p-4 space-y-1 text-sm">
-                  {viewingOffice.street && <p>{viewingOffice.street}</p>}
-                  <p>
-                    {viewingOffice.city}, {viewingOffice.state} {viewingOffice.zip_code}
-                  </p>
-                  <p className="font-medium">{viewingOffice.country}</p>
-                </div>
-              </div>
-
-              {/* Contact */}
-              <div>
-                <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                  <Phone className="w-4 h-4 text-primary" />
-                  Contact Information
-                </h3>
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3 text-sm">
-                    <Mail className="w-4 h-4 text-gray-400" />
-                    <span className="text-gray-600">Email:</span>
-                    <span className="font-medium text-gray-900">{viewingOffice.email}</span>
-                  </div>
-                  {viewingOffice.phone && (
-                    <div className="flex items-center gap-3 text-sm">
-                      <Phone className="w-4 h-4 text-gray-400" />
-                      <span className="text-gray-600">Phone:</span>
-                      <span className="font-medium text-gray-900">
-                        {viewingOffice.phone}
-                      </span>
-                    </div>
-                  )}
-                  {viewingOffice.mobile && (
-                    <div className="flex items-center gap-3 text-sm">
-                      <Smartphone className="w-4 h-4 text-gray-400" />
-                      <span className="text-gray-600">Mobile:</span>
-                      <span className="font-medium text-gray-900">
-                        {viewingOffice.mobile}
-                      </span>
-                    </div>
-                  )}
-                  {viewingOffice.contact_person && (
-                    <div className="flex items-center gap-3 text-sm">
-                      <User className="w-4 h-4 text-gray-400" />
-                      <span className="text-gray-600">Contact Person:</span>
-                      <span className="font-medium text-gray-900">
-                        {viewingOffice.contact_person}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-
-          <DialogFooter className="gap-2">
-            <button
-              onClick={() => setShowViewDialog(false)}
-              className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-            >
-              Close
-            </button>
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => {
-                setShowViewDialog(false);
-                handleEdit(viewingOffice);
-              }}
-              className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary-deep transition-colors"
-            >
-              <Edit2 className="w-4 h-4" />
-              Edit Office
-            </motion.button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <OfficeViewDialog
+        open={showViewDialog}
+        onOpenChange={setShowViewDialog}
+        office={viewingOffice}
+        onEdit={() => {
+          setShowViewDialog(false);
+          handleEdit(viewingOffice);
+        }}
+      />
     </motion.div>
   );
 }

@@ -7,8 +7,70 @@ import { toast } from "react-hot-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchWithToken, postWithToken } from "@/helpers/api";
 import { useAppContext } from "@/context/context";
-import RoleFormDialog from "../roles/RoleFormDialog";
-import ViewRoleDialog from "../roles/ViewRoleDialog";
+import RoleFormDialog from "../team/roles/RoleFormDialog";
+import ViewRoleDialog from "../team/roles/ViewRoleDialog";
+import DeleteConfirmDialog from "@/components/common/DeleteConfirmDialog";
+
+function RolesSkeleton() {
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between animate-pulse">
+        <div className="min-w-0">
+          <div className="h-6 w-56 bg-gray-200 rounded mb-2" />
+          <div className="h-4 w-full max-w-80 bg-gray-100 rounded" />
+        </div>
+        <div className="h-10 w-full sm:w-32 bg-gray-200 rounded" />
+      </div>
+
+      <div className="bg-white rounded-lg border border-gray-200 p-4 animate-pulse">
+        <div className="h-10 w-full max-w-md bg-gray-100 rounded-lg" />
+      </div>
+
+      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden animate-pulse">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="bg-gray-50 border-b border-gray-200">
+                <th className="px-6 py-3 text-left"><div className="h-3 w-20 bg-gray-200 rounded" /></th>
+                <th className="px-6 py-3 text-left"><div className="h-3 w-24 bg-gray-200 rounded" /></th>
+                <th className="px-6 py-3 text-left"><div className="h-3 w-24 bg-gray-200 rounded" /></th>
+                <th className="px-6 py-3 text-right"><div className="h-3 w-16 bg-gray-200 rounded ml-auto" /></th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {Array.from({ length: 5 }).map((_, idx) => (
+                <tr key={idx}>
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-gray-200 shrink-0" />
+                      <div className="space-y-2">
+                        <div className="h-4 w-28 bg-gray-200 rounded" />
+                        <div className="h-3 w-16 bg-gray-100 rounded" />
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="h-4 w-56 bg-gray-200 rounded" />
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="h-5 w-24 bg-gray-100 rounded-full" />
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex items-center justify-end gap-2">
+                      <div className="w-9 h-9 rounded-lg bg-gray-200" />
+                      <div className="w-9 h-9 rounded-lg bg-gray-200" />
+                      <div className="w-9 h-9 rounded-lg bg-gray-200" />
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function Roles() {
   const { accessToken } = useAppContext();
@@ -20,6 +82,10 @@ export default function Roles() {
   const [showViewDialog, setShowViewDialog] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [deletingId, setDeletingId] = useState(null);
+  const [itemToDelete, setItemToDelete] = useState(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [viewLoadingId, setViewLoadingId] = useState(null);
+  const [editLoadingId, setEditLoadingId] = useState(null);
 
   // Fetch roles list
   const { data, isLoading, error } = useQuery({
@@ -73,6 +139,7 @@ export default function Roles() {
   };
 
   const handleEdit = async (role) => {
+    setEditLoadingId(role.id);
     try {
       const res = await fetchWithToken({ queryKey: [`/roles/${role.id}`, accessToken] });
       if (res?.data) {
@@ -81,10 +148,13 @@ export default function Roles() {
       }
     } catch {
       toast.error("Failed to load role details");
+    } finally {
+      setEditLoadingId(null);
     }
   };
 
   const handleView = async (role) => {
+    setViewLoadingId(role.id);
     try {
       const res = await fetchWithToken({ queryKey: [`/roles/${role.id}`, accessToken] });
       if (res?.data) {
@@ -93,23 +163,26 @@ export default function Roles() {
       }
     } catch {
       toast.error("Failed to load role details");
+    } finally {
+      setViewLoadingId(null);
     }
   };
 
   const handleDelete = (id, name) => {
-    if (window.confirm(`Delete role "${name}"? This action cannot be undone.`)) {
-      setDeletingId(id);
-      deleteMutation.mutate(id);
+    setItemToDelete({ id, name });
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (itemToDelete?.id) {
+      setDeletingId(itemToDelete.id);
+      deleteMutation.mutate(itemToDelete.id);
     }
   };
 
   // Loading / Error states
   if (isLoading || loadingPermissions) {
-    return (
-      <div className="bg-white rounded-lg border border-gray-200 p-6 flex items-center justify-center min-h-[400px]">
-        <Loader2 className="w-8 h-8 text-primary animate-spin" />
-      </div>
-    );
+    return <RolesSkeleton />;
   }
 
   if (error) {
@@ -129,6 +202,19 @@ export default function Roles() {
       animate={{ opacity: 1, y: 0 }}
       className="space-y-4"
     >
+      <DeleteConfirmDialog
+        open={deleteDialogOpen}
+        onOpenChange={(open) => {
+          setDeleteDialogOpen(open);
+          if (!open) setItemToDelete(null);
+        }}
+        title="Delete Role"
+        description="Are you sure you want to delete this role? This action cannot be undone."
+        itemName={itemToDelete?.name}
+        onConfirm={confirmDelete}
+        isLoading={deleteMutation.isPending}
+      />
+
       {/* Top Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -205,7 +291,7 @@ export default function Roles() {
                   <tr>
                     <td colSpan="4" className="px-6 py-12 text-center">
                       <p className="text-sm text-gray-500">
-                        No roles found matching "{searchQuery}"
+                        No roles found matching &quot;{searchQuery}&quot;
                       </p>
                     </td>
                   </tr>
@@ -221,7 +307,7 @@ export default function Roles() {
                       {/* Name */}
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                             <Shield className="w-5 h-5 text-primary" />
                           </div>
                           <div>
@@ -247,24 +333,34 @@ export default function Roles() {
                       {/* Actions */}
                       <td className="px-6 py-4 whitespace-nowrap text-right">
                         <div className="flex items-center justify-end gap-2">
-                          {/* <motion.button
+                          <motion.button
                             whileHover={{ scale: 1.1 }}
                             whileTap={{ scale: 0.9 }}
                             onClick={() => handleView(role)}
+                            disabled={viewLoadingId === role.id}
                             className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
                             title="View Details"
                           >
-                            <Eye className="w-4 h-4" />
-                          </motion.button> */}
+                            {viewLoadingId === role.id ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Eye className="w-4 h-4" />
+                            )}
+                          </motion.button>
 
                           <motion.button
                             whileHover={{ scale: 1.1 }}
                             whileTap={{ scale: 0.9 }}
                             onClick={() => handleEdit(role)}
+                            disabled={editLoadingId === role.id}
                             className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                             title="Edit"
                           >
-                            <Edit2 className="w-4 h-4" />
+                            {editLoadingId === role.id ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Edit2 className="w-4 h-4" />
+                            )}
                           </motion.button>
 
                           <motion.button
