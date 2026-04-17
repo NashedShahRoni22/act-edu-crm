@@ -5,10 +5,12 @@ import { fetchWithToken, postWithToken } from "@/helpers/api";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Plus, Loader2, Mail, MessageSquare } from "lucide-react";
+import { Plus, Mail, MessageSquare } from "lucide-react";
 import { toast } from "react-hot-toast";
 import TemplateCard from "./TemplateCard";
 import TemplateFormDialog from "./TemplateFormDialog";
+import DeleteConfirmDialog from "@/components/common/DeleteConfirmDialog";
+import TemplatesSkeleton from "./TemplatesSkeleton";
 
 const emptyForm = {
   title: "",
@@ -17,6 +19,13 @@ const emptyForm = {
   body: "",
 };
 
+function stripHtml(content = "") {
+  return content
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .trim();
+}
+
 export default function Templates() {
   const { accessToken } = useAppContext();
   const queryClient = useQueryClient();
@@ -24,6 +33,8 @@ export default function Templates() {
   const [activeType, setActiveType] = useState("email");
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState(emptyForm);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState(null);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["/email-templates", activeType, accessToken],
@@ -81,6 +92,8 @@ export default function Templates() {
     onSuccess: (res) => {
       if (res.status === "success") {
         toast.success(res.message || "Template deleted successfully");
+        setDeleteDialogOpen(false);
+        setItemToDelete(null);
         queryClient.invalidateQueries({ queryKey: ["/email-templates"] });
       } else {
         toast.error(res.message || "Failed to delete template");
@@ -102,7 +115,7 @@ export default function Templates() {
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    if (!formData.title.trim()) {
+    if (!stripHtml(formData.title)) {
       toast.error("Title is required");
       return;
     }
@@ -117,39 +130,36 @@ export default function Templates() {
       return;
     }
 
-    if (!formData.body.trim()) {
+    if (!stripHtml(formData.body)) {
       toast.error("Body is required");
       return;
     }
 
     const fd = new FormData();
-    fd.append("title", formData.title.trim());
+    fd.append("title", formData.title);
     fd.append("type", formData.type);
     if (formData.type === "email") {
       fd.append("subject", formData.subject.trim());
     }
-    fd.append("body", formData.body.trim());
+    fd.append("body", formData.body);
 
     createMutation.mutate(fd);
   };
 
   // Handle delete
   const handleDelete = (id, title) => {
-    if (
-      window.confirm(
-        `Delete template "${title}"? This action cannot be undone.`,
-      )
-    ) {
-      deleteMutation.mutate(id);
+    setItemToDelete({ id, title });
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (itemToDelete?.id) {
+      deleteMutation.mutate(itemToDelete.id);
     }
   };
 
   if (isLoading) {
-    return (
-      <div className="bg-white rounded-lg border border-gray-200 p-6 flex items-center justify-center min-h-100">
-        <Loader2 className="w-8 h-8 text-primary animate-spin" />
-      </div>
-    );
+    return <TemplatesSkeleton />;
   }
 
   if (error) {
@@ -168,9 +178,22 @@ export default function Templates() {
       animate={{ opacity: 1, y: 0 }}
       className="space-y-4"
     >
+      <DeleteConfirmDialog
+        open={deleteDialogOpen}
+        onOpenChange={(open) => {
+          setDeleteDialogOpen(open);
+          if (!open) setItemToDelete(null);
+        }}
+        title="Delete Template"
+        description="Are you sure you want to delete this template? This action cannot be undone."
+        itemName={itemToDelete?.title}
+        onConfirm={confirmDelete}
+        isLoading={deleteMutation.isPending}
+      />
+
       {/* Top Bar */}
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
           <h3 className="text-lg font-semibold text-gray-900">Templates</h3>
           <p className="text-sm text-gray-500 mt-1">
             Create and manage reusable email and SMS templates
@@ -181,7 +204,7 @@ export default function Templates() {
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={handleAdd}
-            className="flex items-center gap-2 px-4 py-2.5 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary-deep transition-colors shadow-sm"
+            className="flex w-full sm:w-auto justify-center items-center gap-2 px-4 py-2.5 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary-deep transition-colors shadow-sm"
           >
             <Plus className="w-4 h-4" />
             Add Template
@@ -189,7 +212,7 @@ export default function Templates() {
         )}
       </div>
 
-      <div className="inline-flex rounded-lg border border-gray-200 bg-white p-1">
+      <div className="inline-flex max-w-full overflow-x-auto rounded-lg border border-gray-200 bg-white p-1">
         <button
           onClick={() => {
             setActiveType("email");
@@ -259,7 +282,7 @@ export default function Templates() {
               template={template}
               index={index}
               onDelete={handleDelete}
-              isDeleting={deleteMutation.isPending}
+              isDeleting={deleteMutation.isPending && itemToDelete?.id === template.id}
             />
           ))}
         </div>

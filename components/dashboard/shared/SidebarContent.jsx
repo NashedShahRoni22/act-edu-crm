@@ -3,6 +3,16 @@ import { ChevronRight, X } from "lucide-react";
 import { menuItems } from "./MenuItems";
 import Link from "next/link";
 
+// Helper function to check if pathname matches the link path (including details/nested routes)
+const isPathActive = (pathname, path) => {
+  // For dashboard root path, only match exactly
+  if (path === "/dashboard") {
+    return pathname === path;
+  }
+  // For other routes, allow exact match or nested routes
+  return pathname === path || pathname.startsWith(path + "/");
+};
+
 export default function SidebarContent({
   expandedItems,
   setExpandedItems,
@@ -75,14 +85,14 @@ export default function SidebarContent({
                 <Link
                   href={item.path}
                   className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                    pathname === item.path
+                    isPathActive(pathname, item.path)
                       ? "bg-primary text-white shadow-md"
                       : "text-gray-700 hover:bg-gray-100"
                   }`}
                 >
                   <item.icon
                     className={`w-5 h-5 ${
-                      pathname === item.path ? "text-white" : "text-gray-600"
+                      isPathActive(pathname, item.path) ? "text-white" : "text-gray-600"
                     }`}
                     strokeWidth={1.5}
                   />
@@ -106,7 +116,7 @@ export default function SidebarContent({
                         <Link
                           href={child.path}
                           className={`block px-3 py-2 text-sm rounded-lg transition-colors font-medium ${
-                            pathname === child.path
+                            isPathActive(pathname, child.path)
                               ? "bg-primary text-white shadow-sm"
                               : "text-gray-600 hover:text-primary hover:bg-gray-50"
                           }`}

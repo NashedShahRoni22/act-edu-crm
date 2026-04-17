@@ -4,7 +4,7 @@ import { useAppContext } from "@/context/context";
 import { fetchWithToken, postWithToken } from "@/helpers/api";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   Plus,
   Loader2,
@@ -21,6 +21,50 @@ import {
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import WorkflowCard from "./WorkflowCard";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import DeleteConfirmDialog from "@/components/common/DeleteConfirmDialog";
+
+function WorkflowsSkeleton() {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="space-y-4 p-6 bg-white rounded-lg border border-border"
+    >
+      <div className="flex items-center justify-between animate-pulse">
+        <div>
+          <div className="h-6 w-40 bg-gray-200 rounded mb-2" />
+          <div className="h-4 w-64 bg-gray-100 rounded" />
+        </div>
+        <div className="h-10 w-36 bg-gray-200 rounded" />
+      </div>
+
+      <div className="space-y-3">
+        {Array.from({ length: 4 }).map((_, idx) => (
+          <div
+            key={idx}
+            className="bg-white rounded-lg border border-gray-200 px-6 py-4 animate-pulse"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4 flex-1">
+                <div className="w-10 h-10 rounded-lg bg-gray-200 shrink-0" />
+                <div className="flex-1">
+                  <div className="h-4 w-44 bg-gray-200 rounded mb-2" />
+                  <div className="h-3 w-60 bg-gray-100 rounded" />
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <div className="w-8 h-8 rounded bg-gray-200" />
+                <div className="w-8 h-8 rounded bg-gray-200" />
+                <div className="w-8 h-8 rounded bg-gray-200" />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </motion.div>
+  );
+}
 
 const emptyStage = {
   name: "",
@@ -44,6 +88,8 @@ export default function Workflows() {
 
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState(emptyForm);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState(null);
 
   // Fetch list
   const { data, isLoading, error } = useQuery({
@@ -80,6 +126,8 @@ export default function Workflows() {
     onSuccess: (res) => {
       if (res.status === "success") {
         toast.success(res.message || "Workflow deleted successfully");
+        setDeleteDialogOpen(false);
+        setItemToDelete(null);
         queryClient.invalidateQueries({ queryKey: ["/workflows"] });
       } else {
         toast.error(res.message || "Failed to delete workflow");
@@ -177,17 +225,18 @@ export default function Workflows() {
 
   // Handle delete
   const handleDelete = (id, name) => {
-    if (window.confirm(`Delete workflow "${name}"? This action cannot be undone.`)) {
-      deleteMutation.mutate(id);
+    setItemToDelete({ id, name });
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (itemToDelete?.id) {
+      deleteMutation.mutate(itemToDelete.id);
     }
   };
 
   if (isLoading) {
-    return (
-      <div className="bg-white rounded-lg border border-gray-200 p-6 flex items-center justify-center min-h-[400px]">
-        <Loader2 className="w-8 h-8 text-primary animate-spin" />
-      </div>
-    );
+    return <WorkflowsSkeleton />;
   }
 
   if (error) {
@@ -206,6 +255,16 @@ export default function Workflows() {
       animate={{ opacity: 1, y: 0 }}
       className="space-y-4 p-6 bg-white rounded-lg border border-border "
     >
+      <DeleteConfirmDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        title="Delete Workflow"
+        description="Are you sure you want to delete this workflow? This action cannot be undone."
+        itemName={itemToDelete?.name}
+        onConfirm={confirmDelete}
+        isLoading={deleteMutation.isPending}
+      />
+
       {/* Top Bar */}
       <div className="flex items-center justify-between">
         <div>
@@ -214,43 +273,28 @@ export default function Workflows() {
             Manage your application workflows and stages
           </p>
         </div>
-        {!showForm && (
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={handleAdd}
-            className="flex items-center gap-2 px-4 py-2.5 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary-deep transition-colors shadow-sm"
-          >
-            <Plus className="w-4 h-4" />
-            Add Workflow
-          </motion.button>
-        )}
+        <motion.button
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          onClick={handleAdd}
+          className="flex items-center gap-2 px-4 py-2.5 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary-deep transition-colors shadow-sm"
+        >
+          <Plus className="w-4 h-4" />
+          Add Workflow
+        </motion.button>
       </div>
 
-      {/* Add Form */}
-      <AnimatePresence>
-        {showForm && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="bg-white rounded-lg border border-gray-200 overflow-hidden"
-          >
-            {/* Form Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gray-50">
-              <div className="flex items-center gap-2">
-                <WorkflowIcon className="w-5 h-5 text-primary" />
-                <h3 className="text-base font-semibold text-gray-900">Add Workflow</h3>
-              </div>
-              <button
-                onClick={resetForm}
-                className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-200 rounded-lg transition-colors"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
+      {/* Add Form Modal */}
+      <Dialog open={showForm} onOpenChange={setShowForm}>
+        <DialogContent className="min-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <WorkflowIcon className="w-5 h-5 text-primary" />
+              Add Workflow
+            </DialogTitle>
+          </DialogHeader>
 
-            <form onSubmit={handleSubmit} className="p-6 space-y-6">
+          <form onSubmit={handleSubmit} className="py-4 space-y-6">
               {/* Workflow Name */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">
@@ -369,7 +413,7 @@ export default function Workflows() {
                         <div className="flex-1 space-y-3">
                           {/* Stage Name */}
                           <div className="flex items-center gap-3">
-                            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                            <div className="shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
                               <span className="text-sm font-semibold text-primary">
                                 {index + 1}
                               </span>
@@ -511,10 +555,9 @@ export default function Workflows() {
                   )}
                 </motion.button>
               </div>
-            </form>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* Workflows List */}
       {workflows.length === 0 && !showForm ? (
@@ -539,7 +582,7 @@ export default function Workflows() {
               workflow={workflow}
               index={index}
               onDelete={handleDelete}
-              isDeleting={deleteMutation.isPending}
+              isDeleting={deleteMutation.isPending && itemToDelete?.id === workflow.id}
             />
           ))}
         </div>

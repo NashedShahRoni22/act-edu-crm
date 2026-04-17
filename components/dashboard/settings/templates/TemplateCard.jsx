@@ -3,16 +3,14 @@
 import { useAppContext } from "@/context/context";
 import { fetchWithToken, postWithToken } from "@/helpers/api";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { motion } from "framer-motion";
 import dynamic from "next/dynamic";
 import {
   Edit2,
-  Trash2,
   Loader2,
   Mail,
   MessageSquare,
-  Eye,
   Check,
   FileText,
   Paperclip,
@@ -25,11 +23,19 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "react-hot-toast";
+import TemplateActionsPopover from "./TemplateActionsPopover";
 
 const RichTextEditor = dynamic(() => import("./RichTextEditor"), {
   ssr: false,
   loading: () => <div className="w-full h-64 bg-gray-100 rounded animate-pulse" />,
 });
+
+function stripHtml(content = "") {
+  return content
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .trim();
+}
 
 export default function TemplateCard({ template, index, onDelete, isDeleting }) {
   const { accessToken } = useAppContext();
@@ -82,18 +88,6 @@ export default function TemplateCard({ template, index, onDelete, isDeleting }) 
     onError: () => toast.error("Failed to update template"),
   });
 
-  // Populate form when switching to edit mode
-  useEffect(() => {
-    if (isEditMode && detailData?.data) {
-      setFormData({
-        title: templateDetails.title || "",
-        type: templateDetails.type || "email",
-        subject: templateDetails.subject || "",
-        body: templateDetails.body || "",
-      });
-    }
-  }, [isEditMode, detailData, templateDetails]);
-
   const handleViewDetails = () => {
     setIsDialogOpen(true);
     setIsEditMode(false);
@@ -107,7 +101,7 @@ export default function TemplateCard({ template, index, onDelete, isDeleting }) 
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    if (!formData.title.trim()) {
+    if (!stripHtml(formData.title)) {
       toast.error("Title is required");
       return;
     }
@@ -122,19 +116,19 @@ export default function TemplateCard({ template, index, onDelete, isDeleting }) 
       return;
     }
 
-    if (!formData.body.trim()) {
+    if (!stripHtml(formData.body)) {
       toast.error("Body is required");
       return;
     }
 
     const fd = new FormData();
     fd.append("_method", "PUT");
-    fd.append("title", formData.title.trim());
+    fd.append("title", formData.title);
     fd.append("type", formData.type);
     if (formData.type === "email") {
       fd.append("subject", formData.subject.trim());
     }
-    fd.append("body", formData.body.trim());
+    fd.append("body", formData.body);
 
     updateMutation.mutate(fd);
   };
@@ -148,24 +142,24 @@ export default function TemplateCard({ template, index, onDelete, isDeleting }) 
         className="bg-white rounded-lg border border-gray-200 overflow-hidden hover:shadow-sm transition-shadow"
       >
         <div className="p-6">
-          <div className="flex items-start justify-between mb-3">
-            <div className="space-y-3">
-              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 mt-1">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between mb-3">
+            <div className="flex flex-col items-start gap-3 min-w-0 flex-1">
+              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
                 {template.type === "sms" ? (
                   <MessageSquare className="w-5 h-5 text-primary" />
                 ) : (
                   <Mail className="w-5 h-5 text-primary" />
                 )}
               </div>
-              <div className="">
-                <div className="flex items-center gap-2 mb-1">
-                  <h4 className="text-sm font-semibold text-gray-900">{template.title}</h4>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-start gap-2 mb-1 flex-wrap">
+                  <h4 className="text-sm font-semibold text-gray-900 wrap-break-word">{stripHtml(template.title)}</h4>
                   <span className="text-[10px] uppercase font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-gray-700 border border-gray-200">
                     {template.type || "email"}
                   </span>
                 </div>
                 {template.type !== "sms" && !!template.subject && (
-                  <p className="text-xs font-medium text-gray-600 mb-2">{template.subject}</p>
+                  <p className="text-xs font-medium text-gray-600 mb-2 wrap-break-word">{template.subject}</p>
                 )}
                 <p className="text-xs text-gray-500 line-clamp-2">
                   {template.body_preview}
@@ -174,39 +168,12 @@ export default function TemplateCard({ template, index, onDelete, isDeleting }) 
             </div>
 
             {/* Actions */}
-            <div className="flex items-center gap-2 ml-4">
-              <motion.button
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-                onClick={handleViewDetails}
-                className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                title="View Details"
-              >
-                <Eye className="w-4 h-4" />
-              </motion.button>
-              {/* <motion.button
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-                onClick={handleViewDetails}
-                className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                title="Edit"
-              >
-                <Edit2 className="w-4 h-4" />
-              </motion.button> */}
-              <motion.button
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-                onClick={() => onDelete(template.id, template.title)}
-                disabled={isDeleting}
-                className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
-                title="Delete"
-              >
-                {isDeleting ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Trash2 className="w-4 h-4" />
-                )}
-              </motion.button>
+            <div className="shrink-0 self-end sm:self-start">
+              <TemplateActionsPopover
+                onView={handleViewDetails}
+                onDelete={() => onDelete(template.id, template.title)}
+                isDeleting={isDeleting}
+              />
             </div>
           </div>
 
@@ -250,14 +217,15 @@ export default function TemplateCard({ template, index, onDelete, isDeleting }) 
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">
                   Template Title <span className="text-red-500">*</span>
                 </label>
-                <input
-                  type="text"
+                <RichTextEditor
                   value={formData.title}
-                  onChange={(e) =>
-                    setFormData((p) => ({ ...p, title: e.target.value }))
+                  onChange={(content) =>
+                    setFormData((p) => ({ ...p, title: content }))
                   }
                   placeholder="e.g. Welcome Email"
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
+                  placeholders={placeholders}
+                  editorMinHeightClass="min-h-28"
+                  proseMinHeightClass="min-h-24"
                 />
               </div>
 
@@ -361,9 +329,10 @@ export default function TemplateCard({ template, index, onDelete, isDeleting }) 
                     <FileText className="w-4 h-4" />
                     Template Title
                   </label>
-                  <p className="mt-1 text-base font-semibold text-gray-900">
-                    {templateDetails.title}
-                  </p>
+                  <div
+                    className="mt-1 text-base font-semibold text-gray-900"
+                    dangerouslySetInnerHTML={{ __html: templateDetails.title || "" }}
+                  />
                 </div>
 
                 <div>

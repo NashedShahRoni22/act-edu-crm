@@ -4,14 +4,13 @@ import { useAppContext } from "@/context/context";
 import { fetchWithToken, postWithToken } from "@/helpers/api";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   Plus,
   Edit2,
   Trash2,
   Loader2,
   FileText,
-  X,
   Check,
   Calendar,
   User,
@@ -19,6 +18,54 @@ import {
   Search,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import DeleteConfirmDialog from "@/components/common/DeleteConfirmDialog";
+
+function DocumentTypesSkeleton() {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="space-y-4 p-6 bg-white rounded-lg border border-gray-200"
+    >
+      <div className="flex items-center justify-between animate-pulse">
+        <div>
+          <div className="h-6 w-40 bg-gray-200 rounded mb-2" />
+          <div className="h-4 w-72 bg-gray-100 rounded" />
+        </div>
+        <div className="h-10 w-40 bg-gray-200 rounded" />
+      </div>
+
+      <div className="h-16 bg-white rounded-lg border border-gray-200 p-4 animate-pulse">
+        <div className="h-9 w-full max-w-md bg-gray-100 rounded" />
+      </div>
+
+      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+        <div className="px-6 py-3 bg-gray-50 border-b border-gray-200 animate-pulse">
+          <div className="h-4 w-56 bg-gray-200 rounded" />
+        </div>
+        <div className="divide-y divide-gray-200">
+          {Array.from({ length: 5 }).map((_, idx) => (
+            <div key={idx} className="px-6 py-4 animate-pulse">
+              <div className="grid grid-cols-7 gap-4 items-center">
+                <div className="h-4 w-12 bg-gray-200 rounded" />
+                <div className="h-4 w-24 bg-gray-200 rounded" />
+                <div className="h-6 w-16 bg-gray-100 rounded-full" />
+                <div className="h-4 w-24 bg-gray-100 rounded" />
+                <div className="h-4 w-20 bg-gray-100 rounded" />
+                <div className="h-4 w-16 bg-gray-100 rounded" />
+                <div className="flex justify-end gap-2">
+                  <div className="w-8 h-8 bg-gray-200 rounded" />
+                  <div className="w-8 h-8 bg-gray-200 rounded" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </motion.div>
+  );
+}
 
 const emptyForm = {
   name: "",
@@ -32,6 +79,8 @@ export default function DocumentTypes() {
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState(emptyForm);
   const [searchQuery, setSearchQuery] = useState("");
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState(null);
 
   // Fetch list
   const { data, isLoading, error } = useQuery({
@@ -89,6 +138,8 @@ export default function DocumentTypes() {
     onSuccess: (res) => {
       if (res.status === "success") {
         toast.success(res.message || "Document type deleted successfully");
+        setDeleteDialogOpen(false);
+        setItemToDelete(null);
         queryClient.invalidateQueries({ queryKey: ["/document-types"] });
       } else {
         toast.error(res.message || "Failed to delete document type");
@@ -142,19 +193,20 @@ export default function DocumentTypes() {
 
   // Handle delete
   const handleDelete = (id, name) => {
-    if (window.confirm(`Delete document type "${name}"? This action cannot be undone.`)) {
-      deleteMutation.mutate(id);
+    setItemToDelete({ id, name });
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (itemToDelete?.id) {
+      deleteMutation.mutate(itemToDelete.id);
     }
   };
 
   const isPending = createMutation.isPending || updateMutation.isPending;
 
   if (isLoading) {
-    return (
-      <div className="bg-white rounded-lg border border-gray-200 p-6 flex items-center justify-center min-h-[400px]">
-        <Loader2 className="w-8 h-8 text-primary animate-spin" />
-      </div>
-    );
+    return <DocumentTypesSkeleton />;
   }
 
   if (error) {
@@ -173,6 +225,16 @@ export default function DocumentTypes() {
       animate={{ opacity: 1, y: 0 }}
       className="space-y-4 p-6 bg-white rounded-lg border border-gray-200"
     >
+      <DeleteConfirmDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        title="Delete Document Type"
+        description="Are you sure you want to delete this document type? This action cannot be undone."
+        itemName={itemToDelete?.name}
+        onConfirm={confirmDelete}
+        isLoading={deleteMutation.isPending}
+      />
+
       {/* Top Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -181,45 +243,28 @@ export default function DocumentTypes() {
             Manage document type categories for your applications
           </p>
         </div>
-        {!showForm && (
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={handleAdd}
-            className="flex items-center gap-2 px-4 py-2.5 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary-deep transition-colors shadow-sm"
-          >
-            <Plus className="w-4 h-4" />
-            Add Document Type
-          </motion.button>
-        )}
+        <motion.button
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          onClick={handleAdd}
+          className="flex items-center gap-2 px-4 py-2.5 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary-deep transition-colors shadow-sm"
+        >
+          <Plus className="w-4 h-4" />
+          Add Document Type
+        </motion.button>
       </div>
 
       {/* Add / Edit Form */}
-      <AnimatePresence>
-        {showForm && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="bg-white rounded-lg border border-gray-200 overflow-hidden"
-          >
-            {/* Form Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gray-50">
-              <div className="flex items-center gap-2">
-                <FileText className="w-5 h-5 text-primary" />
-                <h3 className="text-base font-semibold text-gray-900">
-                  {editingId ? "Edit Document Type" : "Add Document Type"}
-                </h3>
-              </div>
-              <button
-                onClick={resetForm}
-                className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-200 rounded-lg transition-colors"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
+      <Dialog open={showForm} onOpenChange={setShowForm}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="w-5 h-5 text-primary" />
+              {editingId ? "Edit Document Type" : "Add Document Type"}
+            </DialogTitle>
+          </DialogHeader>
 
-            <form onSubmit={handleSubmit} className="p-6 space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-5">
               {/* Name */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">
@@ -238,7 +283,7 @@ export default function DocumentTypes() {
                 <p className="text-xs text-gray-500 mt-2">
                   💡 <strong>Tip:</strong> You can create multiple document types at once by separating them with commas.
                   <br />
-                  Example: "Work Experience Letters, Financial Documents, Academic Transcripts"
+                  Example: &quot;Work Experience Letters, Financial Documents, Academic Transcripts&quot;
                 </p>
               </div>
 
@@ -272,9 +317,8 @@ export default function DocumentTypes() {
                 </motion.button>
               </div>
             </form>
-          </motion.div>
-        )}
-      </AnimatePresence>
+        </DialogContent>
+      </Dialog>
 
       {/* Search Bar */}
       {documentTypes.length > 0 && (
@@ -293,7 +337,7 @@ export default function DocumentTypes() {
       )}
 
       {/* Table */}
-      {documentTypes.length === 0 && !showForm ? (
+      {documentTypes.length === 0 ? (
         <div className="bg-white rounded-lg border border-gray-200 p-12 flex flex-col items-center gap-3">
           <FileText className="w-12 h-12 text-gray-300" />
           <p className="text-sm text-gray-500">No document types configured yet</p>
@@ -342,7 +386,7 @@ export default function DocumentTypes() {
                   <tr>
                     <td colSpan="7" className="px-6 py-12 text-center">
                       <p className="text-sm text-gray-500">
-                        No document types found matching "{searchQuery}"
+                        No document types found matching &quot;{searchQuery}&quot;
                       </p>
                     </td>
                   </tr>
@@ -365,7 +409,7 @@ export default function DocumentTypes() {
                       {/* Name */}
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
-                          <FileText className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                          <FileText className="w-4 h-4 text-gray-400 shrink-0" />
                           <span className="text-sm text-gray-900 font-medium">
                             {docType.name}
                           </span>
@@ -425,11 +469,11 @@ export default function DocumentTypes() {
                             whileHover={{ scale: 1.1 }}
                             whileTap={{ scale: 0.9 }}
                             onClick={() => handleDelete(docType.id, docType.name)}
-                            disabled={deleteMutation.isPending}
+                            disabled={deleteMutation.isPending && itemToDelete?.id === docType.id}
                             className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
                             title="Delete"
                           >
-                            {deleteMutation.isPending ? (
+                            {deleteMutation.isPending && itemToDelete?.id === docType.id ? (
                               <Loader2 className="w-4 h-4 animate-spin" />
                             ) : (
                               <Trash2 className="w-4 h-4" />

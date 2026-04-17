@@ -9,6 +9,77 @@ import { Building2, Mail, Phone, Globe, MapPin, Upload, Loader2, Save, Printer }
 import { toast } from "react-hot-toast";
 import Image from "next/image";
 
+// Preferences Skeleton Loader
+function PreferencesSkeleton() {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="bg-white rounded-lg border border-gray-200"
+    >
+      {/* Logo Section Skeleton */}
+      <div className="p-6 border-b border-gray-200 animate-pulse">
+        <div className="h-6 w-32 bg-gray-200 rounded mb-4" />
+        <div className="flex items-start gap-6">
+          <div className="w-24 h-24 rounded-lg border-2 border-gray-200 bg-gray-200" />
+          <div className="flex-1">
+            <div className="h-10 w-40 bg-gray-200 rounded mb-2" />
+            <div className="h-3 w-full bg-gray-100 rounded mt-2" />
+          </div>
+        </div>
+      </div>
+
+      {/* Company Information Skeleton */}
+      <div className="p-6 border-b border-gray-200 animate-pulse">
+        <div className="h-6 w-48 bg-gray-200 rounded mb-4" />
+        <div className="space-y-4">
+          <div>
+            <div className="h-4 w-32 bg-gray-200 rounded mb-2" />
+            <div className="h-10 w-full bg-gray-100 rounded" />
+          </div>
+        </div>
+      </div>
+
+      {/* Contact Information Skeleton */}
+      <div className="p-6 border-b border-gray-200 animate-pulse">
+        <div className="h-6 w-40 bg-gray-200 rounded mb-4" />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {Array.from({ length: 4 }).map((_, idx) => (
+            <div key={idx}>
+              <div className="h-4 w-24 bg-gray-200 rounded mb-2" />
+              <div className="h-10 w-full bg-gray-100 rounded" />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Address Information Skeleton */}
+      <div className="p-6 border-b border-gray-200 animate-pulse">
+        <div className="h-6 w-48 bg-gray-200 rounded mb-4" />
+        <div className="space-y-4">
+          <div>
+            <div className="h-4 w-32 bg-gray-200 rounded mb-2" />
+            <div className="h-10 w-full bg-gray-100 rounded" />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {Array.from({ length: 4 }).map((_, idx) => (
+              <div key={idx}>
+                <div className="h-4 w-24 bg-gray-200 rounded mb-2" />
+                <div className="h-10 w-full bg-gray-100 rounded" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Action Buttons Skeleton */}
+      <div className="p-6 bg-gray-50 flex items-center justify-end gap-3 animate-pulse">
+        <div className="h-10 w-40 bg-gray-200 rounded" />
+      </div>
+    </motion.div>
+  );
+}
+
 export default function Preferences() {
   const { accessToken } = useAppContext();
   const queryClient = useQueryClient();
@@ -133,11 +204,7 @@ export default function Preferences() {
   };
 
   if (isLoading) {
-    return (
-      <div className="bg-white rounded-lg border border-gray-200 p-6 flex items-center justify-center min-h-[400px]">
-        <Loader2 className="w-8 h-8 text-primary animate-spin" />
-      </div>
-    );
+    return <PreferencesSkeleton />;
   }
 
   if (error) {

@@ -19,6 +19,66 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
+import DeleteConfirmDialog from "@/components/common/DeleteConfirmDialog";
+
+// Table Skeleton Loader Component
+function TableSkeleton() {
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full">
+        <thead className="bg-gray-50 border-b border-gray-200">
+          <tr>
+            <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+              Tag Name
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+              Usage Count
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+              Created By
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+              Created At
+            </th>
+            <th className="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
+              Actions
+            </th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-gray-200 bg-white">
+          {Array.from({ length: 5 }).map((_, idx) => (
+            <tr key={idx} className="animate-pulse">
+              <td className="px-6 py-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-gray-200" />
+                  <div className="h-4 w-32 bg-gray-200 rounded" />
+                </div>
+              </td>
+              <td className="px-6 py-4">
+                <div className="h-4 w-12 bg-gray-200 rounded" />
+              </td>
+              <td className="px-6 py-4">
+                <div className="space-y-1">
+                  <div className="h-4 w-32 bg-gray-200 rounded" />
+                  <div className="h-3 w-48 bg-gray-100 rounded" />
+                </div>
+              </td>
+              <td className="px-6 py-4">
+                <div className="h-4 w-24 bg-gray-200 rounded" />
+              </td>
+              <td className="px-6 py-4">
+                <div className="flex items-center justify-end gap-2">
+                  <div className="w-8 h-8 bg-gray-200 rounded" />
+                  <div className="w-8 h-8 bg-gray-200 rounded" />
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
 
 export default function TagManagement() {
   const { accessToken } = useAppContext();
@@ -29,6 +89,8 @@ export default function TagManagement() {
   const [editingTagId, setEditingTagId] = useState(null);
   const [editingTagName, setEditingTagName] = useState("");
   const [showAddForm, setShowAddForm] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [tagToDelete, setTagToDelete] = useState(null);
 
   // Fetch tags
   const { data, isLoading, error } = useQuery({
@@ -94,6 +156,8 @@ export default function TagManagement() {
     onSuccess: (data) => {
       if (data.status === "success") {
         toast.success(data.message || "Tag deleted successfully");
+        setDeleteDialogOpen(false);
+        setTagToDelete(null);
         queryClient.invalidateQueries({ queryKey: ["/tags"] });
       } else {
         toast.error(data.message || "Failed to delete tag");
@@ -145,8 +209,14 @@ export default function TagManagement() {
 
   // Handle delete tag
   const handleDeleteTag = (tagId, tagName) => {
-    if (window.confirm(`Are you sure you want to delete "${tagName}"?`)) {
-      deleteTagMutation.mutate(tagId);
+    setTagToDelete({ id: tagId, name: tagName });
+    setDeleteDialogOpen(true);
+  };
+
+  // Handle confirm delete
+  const handleConfirmDelete = () => {
+    if (tagToDelete) {
+      deleteTagMutation.mutate(tagToDelete.id);
     }
   };
 
@@ -162,9 +232,30 @@ export default function TagManagement() {
 
   if (isLoading) {
     return (
-      <div className="bg-white rounded-lg border border-gray-200 p-6 flex items-center justify-center min-h-[400px]">
-        <Loader2 className="w-8 h-8 text-primary animate-spin" />
-      </div>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-white rounded-lg border border-gray-200"
+      >
+        {/* Header Skeleton */}
+        <div className="p-6 border-b border-gray-200 animate-pulse">
+          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+            <div className="h-10 w-64 bg-gray-200 rounded-lg" />
+            <div className="h-10 w-32 bg-gray-200 rounded-lg" />
+          </div>
+        </div>
+
+        {/* Stats Skeleton */}
+        <div className="px-6 py-4 bg-gray-50 border-b border-gray-200 animate-pulse">
+          <div className="flex items-center gap-6 text-sm text-gray-600">
+            <div className="h-4 w-32 bg-gray-200 rounded" />
+            <div className="h-4 w-32 bg-gray-200 rounded" />
+          </div>
+        </div>
+
+        {/* Table Skeleton */}
+        <TableSkeleton />
+      </motion.div>
     );
   }
 
@@ -425,11 +516,11 @@ export default function TagManagement() {
                             whileHover={{ scale: 1.1 }}
                             whileTap={{ scale: 0.9 }}
                             onClick={() => handleDeleteTag(tag.id, tag.name)}
-                            disabled={deleteTagMutation.isPending}
+                            disabled={deleteTagMutation.isPending && tagToDelete?.id === tag.id}
                             className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
                             title="Delete"
                           >
-                            {deleteTagMutation.isPending ? (
+                            {deleteTagMutation.isPending && tagToDelete?.id === tag.id ? (
                               <Loader2 className="w-4 h-4 animate-spin" />
                             ) : (
                               <Trash2 className="w-4 h-4" />
@@ -455,6 +546,17 @@ export default function TagManagement() {
           </p>
         </div>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <DeleteConfirmDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        title="Delete Tag"
+        description="Are you sure you want to delete this tag? This action cannot be undone."
+        itemName={tagToDelete?.name}
+        onConfirm={handleConfirmDelete}
+        isLoading={deleteTagMutation.isPending}
+      />
     </motion.div>
   );
 }

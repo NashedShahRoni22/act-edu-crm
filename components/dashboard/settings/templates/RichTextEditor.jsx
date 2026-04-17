@@ -4,7 +4,7 @@ import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Link from "@tiptap/extension-link";
 import Image from "@tiptap/extension-image";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   Bold,
   Italic,
@@ -19,7 +19,14 @@ import {
   ChevronDown,
 } from "lucide-react";
 
-const RichTextEditor = ({ value, onChange, placeholder = "Enter your content...", placeholders = [] }) => {
+const RichTextEditor = ({
+  value,
+  onChange,
+  placeholder = "Enter your content...",
+  placeholders = [],
+  editorMinHeightClass = "min-h-64",
+  proseMinHeightClass = "min-h-60",
+}) => {
   const [showPlaceholderDropdown, setShowPlaceholderDropdown] = useState(false);
   const dropdownRef = useRef(null);
 
@@ -46,6 +53,13 @@ const RichTextEditor = ({ value, onChange, placeholder = "Enter your content..."
 
   const [showLinkInput, setShowLinkInput] = useState(false);
   const [linkUrl, setLinkUrl] = useState("");
+
+  // Update editor content when value prop changes
+  useEffect(() => {
+    if (editor && value && editor.getHTML() !== value) {
+      editor.commands.setContent(value, false);
+    }
+  }, [value, editor]);
 
   if (!editor) {
     return <div className="w-full h-64 bg-gray-100 rounded animate-pulse" />;
@@ -276,10 +290,10 @@ const RichTextEditor = ({ value, onChange, placeholder = "Enter your content..."
       </div>
 
       {/* Editor Content */}
-      <div className="px-4 py-3 min-h-64 text-sm">
+      <div className="w-full">
         <EditorContent
           editor={editor}
-          className="focus:outline-none [&_.is-editor-empty:first-child::before]:text-gray-300 [&_.is-editor-empty:first-child::before]:content-[attr(data-placeholder)]"
+          className={`px-4 py-3 ${editorMinHeightClass} text-sm cursor-text w-full [&_.ProseMirror]:w-full [&_.ProseMirror]:${proseMinHeightClass} [&_.ProseMirror]:px-0 [&_.ProseMirror]:py-0 [&_.ProseMirror]:focus:outline-none [&_.is-editor-empty:first-child::before]:text-gray-300 [&_.is-editor-empty:first-child::before]:content-[attr(data-placeholder)]`}
           data-placeholder={placeholder}
         />
       </div>

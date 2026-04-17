@@ -195,7 +195,7 @@ export default function WorkflowCard({ workflow, index, onDelete, isDeleting }) 
       >
         <div className="flex items-center justify-between px-6 py-4">
           <div className="flex items-center gap-4 flex-1">
-            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
               <WorkflowIcon className="w-5 h-5 text-primary" />
             </div>
 
@@ -235,15 +235,6 @@ export default function WorkflowCard({ workflow, index, onDelete, isDeleting }) 
               title="View Details"
             >
               <Eye className="w-4 h-4" />
-            </motion.button>
-            <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              onClick={handleViewDetails}
-              className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-              title="Edit"
-            >
-              <Edit2 className="w-4 h-4" />
             </motion.button>
             <motion.button
               whileHover={{ scale: 1.1 }}
@@ -398,7 +389,7 @@ export default function WorkflowCard({ workflow, index, onDelete, isDeleting }) 
                         <div className="flex-1 space-y-3">
                           {/* Stage Name */}
                           <div className="flex items-center gap-3">
-                            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                            <div className="shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
                               <span className="text-sm font-semibold text-primary">
                                 {index + 1}
                               </span>
@@ -608,50 +599,58 @@ export default function WorkflowCard({ workflow, index, onDelete, isDeleting }) 
                     Edit Workflow
                   </button>
                 </div>
-                <div className="space-y-3">
+                <div className="space-y-0">
                   {workflowDetails.stages?.map((stage, idx) => (
-                    <div
-                      key={stage.id}
-                      className="flex items-start gap-4 p-4 bg-gray-50 rounded-lg border border-gray-200"
-                    >
-                      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                        <span className="text-sm font-semibold text-primary">
+                    <div key={stage.id} className="relative flex items-start gap-4 pb-5 last:pb-0">
+                      {idx < (workflowDetails.stages?.length || 0) - 1 && (
+                        <div className="absolute left-2.75 top-7 bottom-0 w-px bg-primary/25" />
+                      )}
+
+                      <div className="relative z-10 w-6 h-6 rounded-full bg-primary text-white shadow-sm flex items-center justify-center shrink-0 mt-1">
+                        <span className="text-[10px] font-semibold leading-none">
                           {idx + 1}
                         </span>
                       </div>
-                      <div className="flex-1">
-                        <h6 className="text-sm font-medium text-gray-900 mb-2">
-                          {stage.name}
-                        </h6>
-                        <div className="flex flex-wrap gap-2">
+
+                      <div className="flex-1 rounded-xl bg-gray-50 px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-semibold bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                            {idx + 1}
+                          </span>
+                          <span className="text-sm font-semibold text-gray-900">
+                            {stage.name}
+                          </span>
+                        </div>
+
+                        <div className="mt-2 flex flex-wrap items-center gap-1.5">
                           {stage.is_win_stage && (
-                            <span className="inline-flex items-center gap-1 px-2 py-1 bg-warning/10 text-warning rounded text-xs font-medium">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-warning/10 text-warning rounded text-[11px] font-medium">
                               <Trophy className="w-3 h-3" />
-                              Win Stage
+                              Win
                             </span>
                           )}
-                          {stage.require_partner_client_id === 1 && (
-                            <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-medium">
+                          {(stage.require_partner_client_id === 1 || stage.require_partner_client_id === true) && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-[11px] font-medium">
                               <Users className="w-3 h-3" />
                               Partner/Client
                             </span>
                           )}
-                          {stage.add_start_and_end_date === 1 && (
-                            <span className="inline-flex items-center gap-1 px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs font-medium">
+                          {(stage.add_start_and_end_date === 1 || stage.add_start_and_end_date === true) && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-purple-100 text-purple-700 rounded text-[11px] font-medium">
                               <Calendar className="w-3 h-3" />
                               Dates
                             </span>
                           )}
-                          {stage.add_note === 1 && (
-                            <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-medium">
+                          {(stage.add_note === 1 || stage.add_note === true) && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-100 text-green-700 rounded text-[11px] font-medium">
                               <FileText className="w-3 h-3" />
                               Notes
                             </span>
                           )}
-                          {stage.add_application_intake_field === 1 && (
-                            <span className="inline-flex items-center gap-1 px-2 py-1 bg-orange-100 text-orange-700 rounded text-xs font-medium">
+                          {(stage.add_application_intake_field === 1 || stage.add_application_intake_field === true) && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-orange-100 text-orange-700 rounded text-[11px] font-medium">
                               <ClipboardList className="w-3 h-3" />
-                              Intake Field
+                              Intake
                             </span>
                           )}
                         </div>

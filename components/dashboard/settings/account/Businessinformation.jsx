@@ -16,6 +16,59 @@ import {
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 
+// Business Information Skeleton Loader
+function BusinessInformationSkeleton() {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="space-y-6 p-6 bg-white rounded-lg border border-gray-200"
+    >
+      {/* Header Skeleton */}
+      <div className="animate-pulse">
+        <div className="h-7 w-64 bg-gray-200 rounded mb-2" />
+        <div className="h-4 w-96 bg-gray-100 rounded" />
+      </div>
+
+      {/* Registration Number Card Skeleton */}
+      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden animate-pulse">
+        <div className="flex items-center justify-between px-6 py-4 bg-gray-50 border-b border-gray-200">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-gray-200" />
+            <div>
+              <div className="h-5 w-56 bg-gray-200 rounded mb-2" />
+              <div className="h-3 w-72 bg-gray-100 rounded" />
+            </div>
+          </div>
+          <div className="w-9 h-9 rounded-lg bg-gray-200" />
+        </div>
+        <div className="p-6">
+          <div className="h-12 w-48 bg-gray-100 rounded" />
+        </div>
+      </div>
+
+      {/* Address Card Skeleton */}
+      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden animate-pulse">
+        <div className="flex items-center justify-between px-6 py-4 bg-gray-50 border-b border-gray-200">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-gray-200" />
+            <div>
+              <div className="h-5 w-56 bg-gray-200 rounded mb-2" />
+              <div className="h-3 w-72 bg-gray-100 rounded" />
+            </div>
+          </div>
+          <div className="w-9 h-9 rounded-lg bg-gray-200" />
+        </div>
+        <div className="p-6">
+          <div className="space-y-4">
+            <div className="h-12 w-full bg-gray-100 rounded" />
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
 export default function BusinessInformation() {
   const { accessToken } = useAppContext();
   const queryClient = useQueryClient();
@@ -196,11 +249,7 @@ export default function BusinessInformation() {
   const hasError = errorRegistration || errorAddress;
 
   if (isLoading) {
-    return (
-      <div className="bg-white rounded-lg border border-gray-200 p-6 flex items-center justify-center min-h-[400px]">
-        <Loader2 className="w-8 h-8 text-primary animate-spin" />
-      </div>
-    );
+    return <BusinessInformationSkeleton />;
   }
 
   if (hasError) {
