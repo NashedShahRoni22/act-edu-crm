@@ -79,10 +79,10 @@ export default function ContactTasksTab({ contactId }) {
   const [selectedTask, setSelectedTask] = useState(null);
 
   const { data, isLoading } = useQuery({
-    queryKey: [`/tasks?filter=all&client_id=${contactId}`, accessToken],
+    queryKey: [`/tasks?filter=all&related_type=client&related_id=${contactId}`, accessToken],
     queryFn: async () => {
       const response = await fetchWithToken({
-        queryKey: [`/tasks?filter=all&client_id=${contactId}`, accessToken],
+        queryKey: [`/tasks?filter=all&related_type=client&related_id=${contactId}`, accessToken],
       });
       return response;
     },

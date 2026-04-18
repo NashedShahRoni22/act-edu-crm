@@ -108,9 +108,4 @@ export const menuItems = [
     label: "Agents",
     path: "/dashboard/agents",
   },
-  {
-    icon: Wrench,
-    label: "Tools",
-    path: "/dashboard/tools",
-  },
 ];

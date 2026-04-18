@@ -13,18 +13,12 @@ import {
   Upload,
   Plus,
   SlidersHorizontal,
-  Mail,
-  MapPin,
-  MoreVertical,
-  Edit2,
-  Trash2,
-  Loader2,
-  Eye,
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "react-hot-toast";
 import PartnerFormDialog from "../partners/Partnerformdialog";
 import PartnerCard from "../partners/PartnerCard";
+import PartnersSkeleton from "../partners/PartnersSkeleton";
 import SectionContainer from "../SectionContainer";
 
 export default function PartnersPage() {
@@ -150,9 +144,9 @@ export default function PartnersPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="w-8 h-8 text-primary animate-spin" />
-      </div>
+      <SectionContainer>
+        <PartnersSkeleton />
+      </SectionContainer>
     );
   }
 

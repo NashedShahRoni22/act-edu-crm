@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import {
   Upload,
   Check,
+  ChevronDown,
   Loader2,
   X,
 } from "lucide-react";
@@ -20,6 +21,9 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 
 const CATEGORIES = [
   { value: "reminder", label: "Reminder" },
@@ -78,9 +82,9 @@ export default function TaskCreateDialog({ open, onOpenChange, onSuccess, preset
       ? { ...emptyForm, related_to_type: presetType, related_to_id: presetId }
       : emptyForm
   );
+  const [followersOpen, setFollowersOpen] = useState(false);
   const [attachments, setAttachments] = useState([]);
   const [followers, setFollowers] = useState([]);
-  const [followerInput, setFollowerInput] = useState("");
   const [reminders, setReminders] = useState([]);
 
   // Fetch users
@@ -154,7 +158,7 @@ export default function TaskCreateDialog({ open, onOpenChange, onSuccess, preset
         toast.success("Task created successfully");
         resetForm();
         onOpenChange(false);
-        queryClient.invalidateQueries({ queryKey: ["/tasks?filter=all"] });
+        queryClient.invalidateQueries({ queryKey: [`/tasks?filter=all&related_type=client&related_id=${presetId}`] });
         onSuccess?.();
       } else {
         toast.error(res.message || "Failed to create task");
@@ -173,7 +177,7 @@ export default function TaskCreateDialog({ open, onOpenChange, onSuccess, preset
     }
     setAttachments([]);
     setFollowers([]);
-    setFollowerInput("");
+    setFollowersOpen(false);
     setReminders([]);
   };
 
@@ -193,15 +197,13 @@ export default function TaskCreateDialog({ open, onOpenChange, onSuccess, preset
     setAttachments((prev) => prev.filter((_, i) => i !== idx));
   };
 
-  const addFollower = () => {
-    if (followerInput && !followers.includes(followerInput)) {
-      setFollowers((prev) => [...prev, followerInput]);
-      setFollowerInput("");
-    }
-  };
-
-  const removeFollower = (idx) => {
-    setFollowers((prev) => prev.filter((_, i) => i !== idx));
+  const toggleFollower = (userId) => {
+    const normalizedId = userId.toString();
+    setFollowers((prev) =>
+      prev.includes(normalizedId)
+        ? prev.filter((id) => id !== normalizedId)
+        : [...prev, normalizedId]
+    );
   };
 
   const addReminder = () => {
@@ -444,49 +446,92 @@ export default function TaskCreateDialog({ open, onOpenChange, onSuccess, preset
             <label className="block text-sm font-medium text-gray-900 mb-2">
               Add Followers
             </label>
-            <div className="flex gap-2 mb-3">
-              <select
-                value={followerInput}
-                onChange={(e) => setFollowerInput(e.target.value)}
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
-              >
-                <option value="">Select user to follow</option>
-                {users.map((user) => (
-                  <option key={user.id} value={user.id}>
-                    {user.first_name} {user.last_name}
-                  </option>
-                ))}
-              </select>
-              <button
-                onClick={addFollower}
-                className="px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary-deep transition-colors"
-              >
-                Add
-              </button>
-            </div>
+            <Popover open={followersOpen} onOpenChange={setFollowersOpen}>
+              <PopoverTrigger asChild>
+                <button
+                  type="button"
+                  className={cn(
+                    "w-full min-h-10.5 px-3 py-2 border border-gray-300 rounded-lg text-sm text-left flex flex-wrap gap-1.5 items-center bg-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all",
+                    followers.length === 0 && "text-gray-400"
+                  )}
+                >
+                  {followers.length === 0 ? (
+                    <span className="flex-1">Select users to follow...</span>
+                  ) : (
+                    users
+                      .filter((u) => followers.includes(u.id.toString()))
+                      .map((user) => (
+                        <Badge key={user.id} variant="secondary" className="flex items-center gap-1 pr-1 text-xs">
+                          {user.first_name} {user.last_name}
+                          <span
+                            role="button"
+                            tabIndex={0}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleFollower(user.id);
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" || e.key === " ") {
+                                e.stopPropagation();
+                                toggleFollower(user.id);
+                              }
+                            }}
+                            className="ml-0.5 hover:text-red-500 cursor-pointer"
+                          >
+                            <X className="w-3 h-3" />
+                          </span>
+                        </Badge>
+                      ))
+                  )}
+                  <ChevronDown className="w-4 h-4 text-gray-400 ml-auto shrink-0" />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-full p-0" align="start">
+                <div
+                  className="max-h-56 overflow-y-auto overscroll-contain"
+                  onWheel={(e) => e.stopPropagation()}
+                >
+                  {users.length === 0 ? (
+                    <p className="text-sm text-gray-500 text-center py-4">No users found</p>
+                  ) : (
+                    users.map((user) => {
+                      const isSelected = followers.includes(user.id.toString());
+                      return (
+                        <button
+                          key={user.id}
+                          type="button"
+                          onClick={() => toggleFollower(user.id)}
+                          className={cn(
+                            "w-full flex items-center gap-3 px-3 py-2.5 text-sm hover:bg-gray-50 transition-colors text-left",
+                            isSelected && "bg-primary/5"
+                          )}
+                        >
+                          <div
+                            className={cn(
+                              "w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors",
+                              isSelected ? "bg-primary border-primary" : "border-gray-300"
+                            )}
+                          >
+                            {isSelected && <Check className="w-3 h-3 text-white" />}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-gray-900 truncate">
+                              {user.first_name} {user.last_name}
+                            </p>
+                            <p className="text-xs text-gray-500 truncate">{user.email}</p>
+                          </div>
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+              </PopoverContent>
+            </Popover>
 
             {followers.length > 0 && (
-              <div className="flex flex-wrap gap-2">
-                {followers.map((followerId, idx) => {
-                  const user = users.find((u) => u.id.toString() === followerId.toString());
-                  return (
-                    <div
-                      key={idx}
-                      className="flex items-center gap-2 bg-primary/10 text-primary px-3 py-1 rounded-full text-sm"
-                    >
-                      <span>
-                        {user?.first_name} {user?.last_name}
-                      </span>
-                      <button
-                        onClick={() => removeFollower(idx)}
-                        className="hover:text-primary-deep"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
+              <p className="text-xs text-gray-500 mt-2">
+                {followers.length} follower{followers.length > 1 ? "s" : ""} selected
+              </p>
             )}
           </div>
 

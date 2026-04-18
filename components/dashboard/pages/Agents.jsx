@@ -8,6 +8,7 @@ import { fetchWithToken, postWithToken } from "@/helpers/api";
 import { useAppContext } from "@/context/context";
 import { toast } from "react-hot-toast";
 import AgentDialog from "../agents/Agentdialog";
+import AgentsSkeleton from "../agents/AgentsSkeleton";
 
 export default function Agents() {
   const { accessToken } = useAppContext();
@@ -109,11 +110,7 @@ export default function Agents() {
   };
 
   if (isLoading) {
-    return (
-      <div className="bg-white rounded-lg border border-gray-200 p-6 flex items-center justify-center min-h-[400px]">
-        <Loader2 className="w-8 h-8 text-primary animate-spin" />
-      </div>
-    );
+    return <AgentsSkeleton />;
   }
 
   return (

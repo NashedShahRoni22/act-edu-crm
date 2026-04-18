@@ -7,18 +7,17 @@ import {
   Search,
   Download,
   Eye,
-  Loader2,
   CheckCircle,
   Circle,
   AlertCircle,
   Clock,
 } from "lucide-react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchWithToken, postWithToken, deleteWithToken } from "@/helpers/api";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { fetchWithToken } from "@/helpers/api";
 import { useAppContext } from "@/context/context";
-import { toast } from "react-hot-toast";
 import TaskCreateDialog from "../tasks/TaskCreateDialog";
 import TaskViewDialog from "../tasks/TaskViewDialog";
+import TasksSkeleton from "../tasks/TasksSkeleton";
 
 const PRIORITY_COLORS = {
   low: "bg-blue-100 text-blue-800",
@@ -114,11 +113,7 @@ export default function Tasks() {
   };
 
   if (isLoading) {
-    return (
-      <div className="bg-white rounded-lg border border-gray-200 p-6 flex items-center justify-center min-h-[400px]">
-        <Loader2 className="w-8 h-8 text-primary animate-spin" />
-      </div>
-    );
+    return <TasksSkeleton />;
   }
 
   return (

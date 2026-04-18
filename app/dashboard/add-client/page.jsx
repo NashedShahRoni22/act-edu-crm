@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useRouter } from "next/navigation";
 import { useAppContext } from "@/context/context";
 import { fetchWithToken, postWithToken } from "@/helpers/api";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -20,6 +21,9 @@ import {
   X,
 } from "lucide-react";
 import SectionContainer from "@/components/dashboard/SectionContainer";
+import { Badge } from "@/components/ui/badge";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 
 const emptyApplication = {
   unique_id: "",
@@ -46,6 +50,7 @@ const SOURCES = [
 export default function AddClientPage() {
   const { accessToken } = useAppContext();
   const queryClient = useQueryClient();
+  const router = useRouter();
 
   const [formData, setFormData] = useState({
     first_name: "",
@@ -54,7 +59,9 @@ export default function AddClientPage() {
     phone: "",
     assignee_id: "",
     source: "",
+    tag_ids: [],
   });
+  const [tagsOpen, setTagsOpen] = useState(false);
 
   const [applications, setApplications] = useState([{ ...emptyApplication }]);
 
@@ -66,6 +73,15 @@ export default function AddClientPage() {
   });
 
   const users = usersData?.data || [];
+
+  // Fetch tags for multiselect
+  const { data: tagsData } = useQuery({
+    queryKey: ["/tags", accessToken],
+    queryFn: fetchWithToken,
+    enabled: !!accessToken,
+  });
+
+  const tags = tagsData?.data || [];
 
   // Fetch services (products with branches and workflows)
   const { data: servicesData, isLoading: loadingServices } = useQuery({
@@ -90,9 +106,12 @@ export default function AddClientPage() {
           phone: "",
           assignee_id: "",
           source: "",
+          tag_ids: [],
         });
+        setTagsOpen(false);
         setApplications([{ ...emptyApplication }]);
         queryClient.invalidateQueries({ queryKey: ["/contacts"] });
+        router.push("/dashboard/contacts");
       } else {
         toast.error(res.message || "Failed to create contact");
       }
@@ -123,6 +142,19 @@ export default function AddClientPage() {
     }
 
     setApplications(updatedApps);
+  };
+
+  const toggleTag = (tagId) => {
+    setFormData((prev) => {
+      const normalizedId = Number(tagId);
+      const exists = prev.tag_ids.includes(normalizedId);
+      return {
+        ...prev,
+        tag_ids: exists
+          ? prev.tag_ids.filter((id) => id !== normalizedId)
+          : [...prev.tag_ids, normalizedId],
+      };
+    });
   };
 
   // Handle form submit
@@ -181,6 +213,10 @@ export default function AddClientPage() {
     fd.append("assignee_id", formData.assignee_id);
     fd.append("source", formData.source);
 
+    formData.tag_ids.forEach((tagId, index) => {
+      fd.append(`tag_ids[${index}]`, String(tagId));
+    });
+
     applications.forEach((app, index) => {
       fd.append(`applications[${index}][product_id]`, app.product_id);
       fd.append(`applications[${index}][partner_id]`, app.partner_id);
@@ -194,7 +230,7 @@ export default function AddClientPage() {
 
   if (loadingServices) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
+      <div className="flex items-center justify-center min-h-100">
         <Loader2 className="w-8 h-8 text-[#3B4CB8] animate-spin" />
       </div>
     );
@@ -340,6 +376,108 @@ export default function AddClientPage() {
                 </select>
                 <ChevronDown className="w-4 h-4 text-gray-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               </div>
+            </div>
+
+            <div className="md:col-span-1">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Tags
+              </label>
+              <Popover open={tagsOpen} onOpenChange={setTagsOpen}>
+                <PopoverTrigger asChild>
+                  <button
+                    type="button"
+                    className={cn(
+                      "w-full min-h-10.5 px-3 py-2 border border-gray-300 rounded-lg text-sm text-left flex flex-wrap gap-1.5 items-center bg-white focus:outline-none focus:ring-2 focus:ring-[#3B4CB8]/50 focus:border-[#3B4CB8] transition-all",
+                      formData.tag_ids.length === 0 && "text-gray-400"
+                    )}
+                  >
+                    {formData.tag_ids.length === 0 ? (
+                      <span className="flex-1">Select tags...</span>
+                    ) : (
+                      tags
+                        .filter((tag) => formData.tag_ids.includes(Number(tag.id)))
+                        .map((tag) => (
+                          <Badge
+                            key={tag.id}
+                            variant="secondary"
+                            className="flex items-center gap-1 pr-1 text-xs"
+                          >
+                            {tag.name}
+                            <span
+                              role="button"
+                              tabIndex={0}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleTag(tag.id);
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter" || e.key === " ") {
+                                  e.stopPropagation();
+                                  toggleTag(tag.id);
+                                }
+                              }}
+                              className="ml-0.5 hover:text-red-500 cursor-pointer"
+                            >
+                              <X className="w-3 h-3" />
+                            </span>
+                          </Badge>
+                        ))
+                    )}
+                    <ChevronDown className="w-4 h-4 text-gray-400 ml-auto shrink-0" />
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-full p-0" align="start">
+                  <div
+                    className="max-h-56 overflow-y-auto overscroll-contain"
+                    onWheel={(e) => e.stopPropagation()}
+                  >
+                    {tags.length === 0 ? (
+                      <p className="text-sm text-gray-500 text-center py-4">
+                        No tags found
+                      </p>
+                    ) : (
+                      tags.map((tag) => {
+                        const isSelected = formData.tag_ids.includes(Number(tag.id));
+                        return (
+                          <button
+                            key={tag.id}
+                            type="button"
+                            onClick={() => toggleTag(tag.id)}
+                            className={cn(
+                              "w-full flex items-center gap-3 px-3 py-2.5 text-sm hover:bg-gray-50 transition-colors text-left",
+                              isSelected && "bg-[#3B4CB8]/5"
+                            )}
+                          >
+                            <div
+                              className={cn(
+                                "w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors",
+                                isSelected
+                                  ? "bg-[#3B4CB8] border-[#3B4CB8]"
+                                  : "border-gray-300"
+                              )}
+                            >
+                              {isSelected && <Check className="w-3 h-3 text-white" />}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-gray-900 truncate">
+                                {tag.name}
+                              </p>
+                              <p className="text-xs text-gray-500 truncate">
+                                Used {tag.usage_count ?? 0} times
+                              </p>
+                            </div>
+                          </button>
+                        );
+                      })
+                    )}
+                  </div>
+                </PopoverContent>
+              </Popover>
+              {formData.tag_ids.length > 0 && (
+                <p className="text-xs text-gray-500 mt-2">
+                  {formData.tag_ids.length} tag{formData.tag_ids.length > 1 ? "s" : ""} selected
+                </p>
+              )}
             </div>
           </div>
         </motion.div>
@@ -514,7 +652,9 @@ export default function AddClientPage() {
                 phone: "",
                 assignee_id: "",
                 source: "",
+                tag_ids: [],
               });
+              setTagsOpen(false);
               setApplications([{ ...emptyApplication }]);
             }}
             className="px-6 py-2.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
