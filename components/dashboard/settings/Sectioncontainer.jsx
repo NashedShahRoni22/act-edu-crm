@@ -1,7 +1,9 @@
 "use client";
 
 import Accounts from "./Accounts";
+import CustomFields from "./custom-fields/CustomFields";
 import Email from "./Email";
+import Generals from "./generals/Generals";
 import LeadForms from "./LeadForms";
 import Preferences from "./Preferences";
 import TagManagement from "./Tagmanagement";
@@ -32,9 +34,9 @@ export default function SectionContainer({ activeNav }) {
       case "advanced-automation":
         return <DefaultPlaceholder section="Advanced Automation Settings" />;
       case "custom-fields":
-        return <DefaultPlaceholder section="Custom Fields" />;
+        return <CustomFields />;
       case "general":
-        return <DefaultPlaceholder section="General" />;
+        return <Generals/>;
       case "data-import":
         return <DefaultPlaceholder section="Data Import" />;
       case "office-check-in":
