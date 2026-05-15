@@ -10,7 +10,6 @@ import {
   FileStack,
   UserCog,
   UsersRound,
-  Wrench,
   Workflow,
 } from "lucide-react";
 
@@ -50,23 +49,22 @@ export const menuItems = [
     label: "Applications",
     path: "/dashboard/applications",
   },
-  {
-    icon: MessageSquare,
-    label: "Conversations",
-    path: "/dashboard/conversations",
-  },
-  {
-    icon: FileStack,
-    label: "Quotations",
-    path: "/dashboard/quotations",
-  },
+  // {
+  //   icon: MessageSquare,
+  //   label: "Conversations",
+  //   path: "/dashboard/conversations",
+  // },
+  // {
+  //   icon: FileStack,
+  //   label: "Quotations",
+  //   path: "/dashboard/quotations",
+  // },
   {
     icon: UserCog,
     label: "Accounts",
     path: "/dashboard/accounts",
     hasSubmenu: true,
-    children:
-    [
+    children: [
       {
         label: "Invoices",
         path: "/dashboard/invoices",
@@ -75,15 +73,14 @@ export const menuItems = [
         label: "Payments",
         path: "/dashboard/payments",
       },
-    ]
+    ],
   },
   {
     icon: UsersRound,
     label: "Teams",
     path: "/dashboard/teams",
     hasSubmenu: true,
-    children:
-    [
+    children: [
       {
         label: "Offices",
         path: "/dashboard/offices",
@@ -96,7 +93,7 @@ export const menuItems = [
         label: "Roles",
         path: "/dashboard/roles",
       },
-    ]
+    ],
   },
   {
     icon: Workflow,
@@ -107,5 +104,33 @@ export const menuItems = [
     icon: UsersRound,
     label: "Agents",
     path: "/dashboard/agents",
+  },
+  {
+    icon: FileText,
+    label: "Reports",
+    path: "/dashboard/reports",
+    hasSubmenu: true,
+    children: [
+      {
+        label: "Clients Reports",
+        path: "/dashboard/reports/clients",
+      },
+      {
+        label: "Clients by Application",
+        path: "/dashboard/reports/clients-by-application",
+      },
+      {
+        label: "Applications",
+        path: "/dashboard/reports/applications",
+      },
+      {
+        label: "Office Check-ins",
+        path: "/dashboard/reports/office-check-ins",
+      },
+      {
+        label: "Tasks Reports",
+        path: "/dashboard/reports/tasks",
+      },
+    ],
   },
 ];

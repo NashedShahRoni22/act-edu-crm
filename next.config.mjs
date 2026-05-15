@@ -8,8 +8,14 @@ const nextConfig = {
         port: '',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'picsum.photos',
+        port: '',
+        pathname: '/**',
+      },
     ],
-    domains: ["api-actedu.fahimsultan.com"],
+    domains: ["api-actedu.fahimsultan.com", "picsum.photos"],
   },
 };
 

@@ -206,6 +206,46 @@ export default function ContactProfilePanel({ contactId }) {
     onError: () => toast.error("Failed to update rating"),
   });
 
+  const markAsProspectMutation = useMutation({
+    mutationFn: async () => {
+      const fd = new FormData();
+      fd.append("_method", "PUT");
+      return postWithToken(`/contacts/${contactId}/mark-as-prospect`, fd, accessToken);
+    },
+    onSuccess: (res) => {
+      if (res?.status === "success") {
+        queryClient.invalidateQueries({
+          queryKey: [`/contacts/${contactId}`, accessToken],
+        });
+        queryClient.invalidateQueries({ queryKey: ["/contacts", accessToken] });
+        toast.success(res.message || "Contact marked as prospect successfully");
+      } else {
+        toast.error(res?.message || "Failed to mark as prospect");
+      }
+    },
+    onError: () => toast.error("Failed to mark as prospect"),
+  });
+
+  const archiveMutation = useMutation({
+    mutationFn: async () => {
+      const fd = new FormData();
+      fd.append("_method", "PUT");
+      return postWithToken(`/contacts/${contactId}/archive`, fd, accessToken);
+    },
+    onSuccess: (res) => {
+      if (res?.status === "success") {
+        queryClient.invalidateQueries({
+          queryKey: [`/contacts/${contactId}`, accessToken],
+        });
+        queryClient.invalidateQueries({ queryKey: ["/contacts", accessToken] });
+        toast.success(res.message || "Contact archived successfully");
+      } else {
+        toast.error(res?.message || "Failed to archive contact");
+      }
+    },
+    onError: () => toast.error("Failed to archive contact"),
+  });
+
   if (isLoading) return <ContactProfilePanelSkeleton />;
 
   if (isError) {
@@ -255,61 +295,81 @@ export default function ContactProfilePanel({ contactId }) {
         )}
       </div>
 
-      {/* Actions */}
-      <div className="flex items-center justify-center gap-2 pb-2 border-b border-gray-100">
-        {contact.phone ? (
+      {/* Actions sections */}
+      <div className="flex items-center justify-center gap-1">
+        {contact.phone && (
           <a
             href={`sms:${contact.phone}`}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-gray-600 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+            className="group relative p-2 rounded-lg text-gray-600 hover:text-blue-600 hover:bg-blue-50 transition-colors"
             title="Send Message"
           >
-            <MessageCircle className="w-3.5 h-3.5" />
-            Message
+            <MessageCircle className="w-4 h-4" />
+            <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+              Message
+            </span>
           </a>
-        ) : (
-          <button
-            type="button"
-            disabled
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-gray-400 bg-gray-50 cursor-not-allowed"
-            title="No phone available"
-          >
-            <MessageCircle className="w-3.5 h-3.5" />
-            Message
-          </button>
         )}
 
-        {contact.email ? (
+        {contact.email && (
           <a
             href={`mailto:${contact.email}`}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-gray-600 hover:text-sky-600 hover:bg-sky-50 transition-colors"
+            className="group relative p-2 rounded-lg text-gray-600 hover:text-sky-600 hover:bg-sky-50 transition-colors"
             title="Send Email"
           >
-            <Mail className="w-3.5 h-3.5" />
-            Email
+            <Mail className="w-4 h-4" />
+            <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+              Email
+            </span>
           </a>
-        ) : (
-          <button
-            type="button"
-            disabled
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-gray-400 bg-gray-50 cursor-not-allowed"
-            title="No email available"
-          >
-            <Mail className="w-3.5 h-3.5" />
-            Email
-          </button>
         )}
 
         <Link
           href={`/dashboard/edit-client/${contact.id}`}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-gray-600 hover:text-amber-600 hover:bg-amber-50 transition-colors"
+          className="group relative p-2 rounded-lg text-gray-600 hover:text-amber-600 hover:bg-amber-50 transition-colors"
           title="Edit Client"
         >
-          <Edit2 className="w-3.5 h-3.5" />
-          Edit
+          <Edit2 className="w-4 h-4" />
+          <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+            Edit
+          </span>
         </Link>
+
+        <button
+          type="button"
+          onClick={() => markAsProspectMutation.mutate()}
+          disabled={markAsProspectMutation.isPending}
+          className="group relative p-2 rounded-lg text-gray-600 hover:text-purple-600 hover:bg-purple-50 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+          title="Mark As Prospect"
+        >
+          {markAsProspectMutation.isPending ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <User className="w-4 h-4" />
+          )}
+          <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+            Prospect
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => archiveMutation.mutate()}
+          disabled={archiveMutation.isPending}
+          className="group relative p-2 rounded-lg text-gray-600 hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+          title="Archive Contact"
+        >
+          {archiveMutation.isPending ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <XCircle className="w-4 h-4" />
+          )}
+          <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+            Archive
+          </span>
+        </button>
       </div>
       {/* Rating Section */}
-      <div className="space-y-3 py-2 border-t border-b border-gray-100">
+      <div className="space-y-3 py-4 border-y border-gray-100">
         {/* <h3 className="text-sm font-semibold text-gray-900">Rating</h3> */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           {RATING_OPTIONS.map((rating) => {

@@ -12,141 +12,132 @@ import {
   CheckCircle,
   UserCheck,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import SectionContainer from "../SectionContainer";
+import CheckInModal from "../office-checkin/CheckInModal";
+import CheckInSkeleton from "../office-checkin/CheckInSkeleton";
+import CheckInCard from "../office-checkin/CheckInCard";
+import { useQuery } from "@tanstack/react-query";
+import { fetchWithToken } from "@/helpers/api";
+import { useAppContext } from "@/context/context";
 
 export default function OfficeCheckInPage() {
+  const { accessToken } = useAppContext();
+  
+  // Date calculations
+  const dates = useMemo(() => {
+    const today = new Date();
+    return Array.from({ length: 8 }).map((_, i) => {
+      const d = new Date(today);
+      d.setDate(today.getDate() - 3 + i);
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, "0");
+      const dd = String(d.getDate()).padStart(2, "0");
+      
+      return {
+        apiDate: `${yyyy}-${mm}-${dd}`,
+        display: d.toLocaleDateString("en-GB", { day: "numeric", month: "short" })
+      };
+    });
+  }, []);
+
+  // Set today as default
+  const [selectedDateObj, setSelectedDateObj] = useState(dates[3]); // index 3 is today
+
   const [showCompleted, setShowCompleted] = useState(false);
-  const [selectedDate, setSelectedDate] = useState("5th Dec");
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [isCheckInModalOpen, setIsCheckInModalOpen] = useState(false);
 
-  // Stats data
+  const { data, isLoading } = useQuery({
+    queryKey: [`/check-ins?date=${selectedDateObj.apiDate}`, accessToken],
+    queryFn: fetchWithToken,
+    enabled: !!accessToken,
+  });
+
+  const checkInItems = data?.data || [];
+
+  // Filter items based on status and search query
+  const filteredItems = checkInItems.filter((item) => {
+    // Filter by status
+    if (selectedStatus !== "all" && item.status?.toLowerCase() !== selectedStatus) {
+      return false;
+    }
+    // Filter by search query (search in name and email)
+    if (searchQuery) {
+      const fullName = `${item.contact?.first_name || ""} ${item.contact?.last_name || ""}`.toLowerCase();
+      const email = item.contact?.email?.toLowerCase() || "";
+      if (!fullName.includes(searchQuery.toLowerCase()) && !email.includes(searchQuery.toLowerCase())) {
+        return false;
+      }
+    }
+    return true;
+  });
+
+
+  // Dynamic stats from checkInItems
   const stats = [
     {
-      count: 6,
+      count: checkInItems.length,
       label: "Total Check-ins",
       bgColor: "bg-primary",
       textColor: "text-primary",
     },
     {
-      count: 1,
-      label: "Attending",
-      bgColor: "bg-progress",
-      textColor: "text-progress",
+      count: checkInItems.filter((item) => item.status?.toLowerCase() === "unassigned").length,
+      label: "Unassigned",
+      bgColor: "bg-gray-500",
+      textColor: "text-gray-500",
     },
     {
-      count: 2,
+      count: checkInItems.filter((item) => item.status?.toLowerCase() === "waiting").length,
       label: "Waiting",
       bgColor: "bg-warning",
       textColor: "text-warning",
     },
     {
-      count: 2,
+      count: checkInItems.filter((item) => item.status?.toLowerCase() === "attending").length,
+      label: "Attending",
+      bgColor: "bg-progress",
+      textColor: "text-progress",
+    },
+    {
+      count: checkInItems.filter((item) => item.status?.toLowerCase() === "completed").length,
       label: "Completed",
       bgColor: "bg-success",
       textColor: "text-success",
     },
   ];
 
-  // Date filters
-  const dates = [
-    "5th Dec",
-    "6th Dec",
-    "7th Dec",
-    "8th Dec",
-    "9th Dec",
-    "1st Jan",
-    "2nd Jan",
-    "3rd Jan",
-  ];
-
   // Status filters
   const statusFilters = [
-    { id: "unassigned", label: "Unassigned", icon: AlertCircle, color: "yellow" },
+    { id: "all", label: "All", icon: User, color: "gray" },
+    { id: "unassigned", label: "Unassigned", icon: AlertCircle, color: "gray" },
     { id: "waiting", label: "Waiting", icon: Clock, color: "yellow" },
     { id: "attending", label: "Attending", icon: UserCheck, color: "cyan" },
     { id: "completed", label: "Completed", icon: CheckCircle, color: "green" },
   ];
 
-  // Check-in items data
-  const checkInItems = [
-    {
-      id: 1,
-      name: "Sarah Johnson",
-      email: "sarah.j@example.com",
-      purpose: "Student Consultation",
-      time: "09:30 AM",
-      date: "15th Dec",
-      status: "unassigned",
-      statusColor: "yellow",
-    },
-    {
-      id: 2,
-      name: "Sarah Johnson",
-      email: "sarah.j@example.com",
-      purpose: "Student Consultation",
-      time: "09:30 AM",
-      date: "15th Dec",
-      status: "unassigned",
-      statusColor: "yellow",
-    },
-    {
-      id: 3,
-      name: "Sarah Johnson",
-      email: "sarah.j@example.com",
-      purpose: "Student Consultation",
-      time: "09:30 AM",
-      date: "15th Dec",
-      status: "unassigned",
-      statusColor: "blue",
-    },
-    {
-      id: 4,
-      name: "Sarah Johnson",
-      email: "sarah.j@example.com",
-      purpose: "Student Consultation",
-      time: "09:30 AM",
-      date: "15th Dec",
-      status: "unassigned",
-      statusColor: "yellow",
-    },
-  ];
-
-  const getStatusBgColor = (color) => {
-    switch (color) {
-      case "yellow":
-        return "bg-warning/10 border-warning/30";
-      case "cyan":
-        return "bg-progress/10 border-progress/30";
-      case "green":
-        return "bg-success/10 border-success/30";
-      case "blue":
-        return "bg-primary/10 border-primary/30";
+  const mapStatusToColor = (status) => {
+    if (!status) return "gray";
+    switch (status.toLowerCase()) {
+      case "unassigned":
+        return "gray";
+      case "waiting":
+        return "yellow";
+      case "attending":
+        return "cyan";
+      case "completed":
+        return "green";
       default:
-        return "bg-gray-50 border-gray-200";
-    }
-  };
-
-  const getStatusTextColor = (color) => {
-    switch (color) {
-      case "yellow":
-        return "text-warning";
-      case "cyan":
-        return "text-progress";
-      case "green":
-        return "text-success";
-      case "blue":
-        return "text-primary";
-      default:
-        return "text-gray-600";
+        return "blue";
     }
   };
 
   return (
     <SectionContainer>
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
           {stats.map((stat, index) => (
             <motion.div
               key={index}
@@ -157,7 +148,7 @@ export default function OfficeCheckInPage() {
             >
               <div className="flex items-center gap-4">
                 <div
-                  className={`${stat.bgColor} w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0`}
+                  className={`${stat.bgColor} w-12 h-12 rounded-xl flex items-center justify-center shrink-0`}
                 >
                   <span className="text-white text-xl font-bold">
                     {stat.count}
@@ -186,6 +177,7 @@ export default function OfficeCheckInPage() {
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
+                  onClick={() => setIsCheckInModalOpen(true)}
                   className="flex items-center gap-2 px-4 py-2.5 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary-deep transition-colors shadow-sm"
                 >
                   <Plus className="w-4 h-4" />
@@ -231,17 +223,17 @@ export default function OfficeCheckInPage() {
 
             {/* Date Filters */}
             <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-              {dates.map((date) => (
+              {dates.map((dateObj) => (
                 <button
-                  key={date}
-                  onClick={() => setSelectedDate(date)}
+                  key={dateObj.apiDate}
+                  onClick={() => setSelectedDateObj(dateObj)}
                   className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${
-                    selectedDate === date
+                    selectedDateObj.apiDate === dateObj.apiDate
                       ? "bg-gray-900 text-white"
                       : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
                   }`}
                 >
-                  {date}
+                  {dateObj.display}
                 </button>
               ))}
             </div>
@@ -270,77 +262,43 @@ export default function OfficeCheckInPage() {
           </div>
 
           {/* Check-in List */}
-          <div className="px-6 pb-6 space-y-3">
-            {checkInItems.map((item, index) => (
-              <motion.div
-                key={item.id}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.05 }}
-                className={`flex items-center gap-4 p-5 rounded-xl border-2 transition-all hover:shadow-md cursor-pointer ${getStatusBgColor(
-                  item.statusColor
-                )}`}
-              >
-                {/* Avatar */}
-                <div
-                  className={`w-12 h-12 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
-                    item.statusColor === "yellow"
-                      ? "border-warning bg-warning/20"
-                      : item.statusColor === "cyan"
-                      ? "border-progress bg-progress/20"
-                      : item.statusColor === "green"
-                      ? "border-success bg-success/20"
-                      : "border-primary bg-primary/20"
-                  }`}
-                >
-                  <AlertCircle
-                    className={`w-6 h-6 ${getStatusTextColor(item.statusColor)}`}
-                    strokeWidth={2}
-                  />
+          {isLoading ? (
+            <CheckInSkeleton />
+          ) : (
+            <div className="px-6 pb-6 space-y-3">
+              {filteredItems.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  {checkInItems.length === 0 
+                    ? "No check-ins found for this date." 
+                    : "No check-ins match your search or filters."}
                 </div>
-
-                {/* User Info */}
-                <div className="flex-1 min-w-0">
-                  <h3 className="text-base font-semibold text-gray-900">
-                    {item.name}
-                  </h3>
-                  <p className="text-sm text-gray-500">{item.email}</p>
-                </div>
-
-                {/* Details */}
-                <div className="hidden md:flex items-center gap-8 text-sm">
-                  <div>
-                    <span className="text-gray-500">Purpose: </span>
-                    <span className="font-medium text-gray-900">
-                      {item.purpose}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <Clock className="w-4 h-4 text-gray-400" />
-                    <span className="text-gray-500">Time: </span>
-                    <span className="font-medium text-gray-900">{item.time}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <Calendar className="w-4 h-4 text-gray-400" />
-                    <span className="text-gray-500">Date: </span>
-                    <span className="font-medium text-gray-900">{item.date}</span>
-                  </div>
-                </div>
-
-                {/* Status Badge */}
-                <div className="flex-shrink-0">
-                  <span
-                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${getStatusTextColor(
-                      item.statusColor
-                    )}`}
-                  >
-                    Unassigned
-                  </span>
-                </div>
-              </motion.div>
-            ))}
-          </div>
+              ) : (
+                filteredItems.map((item, index) => {
+                  const statusColor = mapStatusToColor(item.status);
+                  const dateObj = new Date(item.created_at);
+                  const displayTime = dateObj.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+                  const displayDate = dateObj.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+                  
+                  return (
+                    <CheckInCard
+                      key={item.id}
+                      item={item}
+                      index={index}
+                      statusColor={statusColor}
+                      displayTime={displayTime}
+                      displayDate={displayDate}
+                    />
+                  );
+                })
+              )}
+            </div>
+          )}
         </motion.div>
+        
+        <CheckInModal 
+          isOpen={isCheckInModalOpen} 
+          onClose={() => setIsCheckInModalOpen(false)} 
+        />
     </SectionContainer>
   );
 }

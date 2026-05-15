@@ -55,6 +55,16 @@ export default function ProductPartnerTypeDialog({
 
   const categories = categoriesData?.data || [];
 
+  // Fetch types based on selected type (product or partner)
+  const typeParam = formData.select_type.replace("_type", "");
+  const { data: typesData, isLoading: loadingTypes } = useQuery({
+    queryKey: [`/settings/types?type=${typeParam}`, accessToken],
+    queryFn: fetchWithToken,
+    enabled: !!accessToken && !!formData.select_type,
+  });
+
+  const types = typesData?.data || [];
+
   // Mutation for creating type
   const createTypeMutation = useMutation({
     mutationFn: async () => {

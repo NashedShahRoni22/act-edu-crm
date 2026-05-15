@@ -14,11 +14,11 @@ export default function ProductPartnerType() {
   const { accessToken } = useAppContext();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [type, setType] = useState("partner");
 
-  // Fetch types - We'll need to get this from an API endpoint
   // For now, placeholder as the API endpoint wasn't specified
   const { data: typesData, isLoading } = useQuery({
-    queryKey: ["/settings/types", accessToken, refreshKey],
+    queryKey: [`/settings/types?type=${type}`, accessToken, refreshKey],
     queryFn: fetchWithToken,
     enabled: !!accessToken,
   });
@@ -36,11 +36,35 @@ export default function ProductPartnerType() {
       animate={{ opacity: 1, y: 0 }}
       className="space-y-4"
     >
-      {/* Header with Button */}
+      {/* types tabs here */}
+      <div>
+        <button
+          onClick={() => setType("partner")}
+          className={`px-4 py-2 text-sm font-medium rounded-md ${
+            type === "partner"
+              ? "bg-primary text-white"
+              : "bg-gray-200 text-gray-700"
+          }`}
+        >
+          Partner Types
+        </button>
+        <button
+          onClick={() => setType("product")}
+          className={`px-4 py-2 text-sm font-medium rounded-md ml-2 ${
+            type === "product"
+              ? "bg-primary text-white"
+              : "bg-gray-200 text-gray-700"
+          }`}
+        >
+          Product Types
+        </button>
+      </div>
+
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h4 className="text-lg font-semibold text-gray-900">
-            Product & Partner Types
+          <h4 className="text-lg font-semibold text-gray-900 capitalize">
+            {type} Types
           </h4>
           <p className="text-gray-600 text-sm mt-1">
             Manage all product and partner category types
@@ -79,13 +103,10 @@ export default function ProductPartnerType() {
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
                     <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">
-                      Master Category
-                    </th>
-                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">
-                      Type
-                    </th>
-                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">
                       Name
+                    </th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">
+                      Master Category
                     </th>
                     <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">
                       Status
@@ -101,18 +122,11 @@ export default function ProductPartnerType() {
                       transition={{ delay: index * 0.05 }}
                       className="hover:bg-gray-50 transition-colors"
                     >
-                      <td className="px-6 py-4 text-sm text-gray-900 font-medium">
-                        {type.master_category?.name || "N/A"}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-600">
-                        <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-50 text-blue-700">
-                          {type.select_type === "product_type"
-                            ? "Product"
-                            : "Partner"}
-                        </span>
-                      </td>
                       <td className="px-6 py-4 text-sm text-gray-900">
                         {type.name}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-900 font-medium">
+                        {type.master_category?.name || "N/A"}
                       </td>
                       <td className="px-6 py-4 text-sm">
                         <span

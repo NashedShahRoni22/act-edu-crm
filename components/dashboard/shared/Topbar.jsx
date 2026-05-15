@@ -4,18 +4,20 @@ import { motion } from "framer-motion";
 import {
   Search,
   Plus,
-  Bell,
   Mail,
   Calendar,
   User,
   Menu,
   ChevronDown,
   Settings,
+  UserCheck,
 } from "lucide-react";
 import { useState } from "react";
+import { useAppContext } from "@/context/context";
+import Link from "next/link";
+import NotificationCenter from "./NotificationCenter";
 
 export default function Topbar({ toggleSidebar }) {
-  const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const { userInfo, logout } = useAppContext();
 
@@ -72,13 +74,13 @@ export default function Topbar({ toggleSidebar }) {
           {/* Icon Buttons */}
           <div className="flex items-center gap-1">
             {/* Calendar */}
-            <motion.button
+            {/* <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               className="p-2 hover:bg-gray-100 rounded-lg transition-colors relative"
             >
               <Calendar className="w-5 h-5 text-gray-600" />
-            </motion.button>
+            </motion.button> */}
 
             {/* Mail */}
             <motion.button
@@ -91,52 +93,7 @@ export default function Topbar({ toggleSidebar }) {
             </motion.button>
 
             {/* Notifications */}
-            <div className="relative">
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setShowNotifications(!showNotifications)}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors relative"
-              >
-                <Bell className="w-5 h-5 text-gray-600" />
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full"></span>
-              </motion.button>
-
-              {/* Notifications Dropdown */}
-              {showNotifications && (
-                <motion.div
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50"
-                >
-                  <div className="px-4 py-2 border-b border-gray-200">
-                    <h3 className="font-semibold text-gray-900">
-                      Notifications
-                    </h3>
-                  </div>
-                  <div className="max-h-96 overflow-y-auto">
-                    {[1, 2, 3].map((i) => (
-                      <div
-                        key={i}
-                        className="px-4 py-3 hover:bg-gray-50 cursor-pointer transition-colors border-b border-gray-100"
-                      >
-                        <p className="text-sm font-medium text-gray-900">
-                          New application submitted
-                        </p>
-                        <p className="text-xs text-gray-500 mt-1">
-                          2 hours ago
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="px-4 py-2 border-t border-gray-200">
-                    <button className="text-sm text-primary hover:text-primary/80 font-medium">
-                      View all notifications
-                    </button>
-                  </div>
-                </motion.div>
-              )}
-            </div>
+            <NotificationCenter />
 
             {/* Calendar */}
             <Link href="/dashboard/settings">
@@ -224,8 +181,3 @@ export default function Topbar({ toggleSidebar }) {
     </header>
   );
 }
-
-// Add this import at the top if not already there
-import { UserCheck } from "lucide-react";
-import { useAppContext } from "@/context/context";
-import Link from "next/link";
