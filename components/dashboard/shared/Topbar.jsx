@@ -22,7 +22,7 @@ export default function Topbar({ toggleSidebar }) {
   const { userInfo, logout } = useAppContext();
 
   return (
-    <header className="h-16 bg-white border-b border-gray-200 sticky top-0 z-30">
+    <header className="fixed top-0 left-0 right-0 lg:left-64 h-16 bg-white border-b border-gray-200 z-30">
       <div className="h-full px-4 lg:px-6 flex items-center justify-between gap-4">
         {/* Left Section */}
         <div className="flex items-center gap-4 flex-1">
@@ -95,7 +95,7 @@ export default function Topbar({ toggleSidebar }) {
             {/* Notifications */}
             <NotificationCenter />
 
-            {/* Calendar */}
+            {/* Settings */}
             <Link href="/dashboard/settings">
               <motion.button
                 whileHover={{ scale: 1.05 }}

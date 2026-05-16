@@ -22,6 +22,10 @@ export default function Sidebar({ isOpen, setIsOpen }) {
   const [expandedItems, setExpandedItems] = useState([]);
   const { userInfo } = useAppContext();
 
+  useEffect(() => {
+    setIsOpen(false);
+  }, [pathname, setIsOpen]);
+
   // Auto-expand menu items based on current pathname
   useEffect(() => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -53,13 +57,13 @@ export default function Sidebar({ isOpen, setIsOpen }) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          className="fixed inset-x-0 top-16 bottom-0 bg-black/50 z-40 lg:hidden"
           onClick={() => setIsOpen(false)}
         />
       )}
 
       {/* Desktop Sidebar - Always Visible */}
-      <aside className="hidden lg:flex lg:flex-col lg:w-64 bg-white border-r border-gray-200">
+      <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:sticky lg:top-0 lg:h-screen lg:shrink-0 bg-white border-r border-gray-200">
         <SidebarContent
           pathname={pathname}
           expandedItems={expandedItems}
@@ -77,7 +81,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
           x: isOpen ? 0 : "-100%",
         }}
         transition={{ type: "spring", stiffness: 300, damping: 30 }}
-        className="lg:hidden fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200 flex flex-col"
+        className="lg:hidden fixed top-16 bottom-0 left-0 z-50 w-64 bg-white border-r border-gray-200 flex flex-col"
       >
         <SidebarContent
           pathname={pathname}

@@ -84,6 +84,9 @@ export default function SidebarContent({
                 // Regular link item
                 <Link
                   href={item.path}
+                  onClick={() => {
+                    if (isMobile) onClose();
+                  }}
                   className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
                     isPathActive(pathname, item.path)
                       ? "bg-primary text-white shadow-md"
@@ -115,6 +118,9 @@ export default function SidebarContent({
                       <li key={childIndex}>
                         <Link
                           href={child.path}
+                          onClick={() => {
+                            if (isMobile) onClose();
+                          }}
                           className={`block px-3 py-2 text-sm rounded-lg transition-colors font-medium ${
                             isPathActive(pathname, child.path)
                               ? "bg-primary text-white shadow-sm"

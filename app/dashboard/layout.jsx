@@ -19,14 +19,14 @@ export default function DashboardLayout({ children }) {
         <Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
 
         {/* Main Content Area */}
-        <section className="flex-1 flex flex-col">
+        <section className="flex-1 flex flex-col min-h-0">
           {/* Topbar */}
-          <div>
+          <div className="h-16 shrink-0">
             <Topbar toggleSidebar={toggleSidebar} />
           </div>
 
           {/* Dashboard Content */}
-          <div className="min-h-screen overflow-y-scroll pb-20">{children}</div>
+          <div className="flex-1 min-h-0 overflow-y-auto pb-20">{children}</div>
         </section>
       </main>
     </PrivateRoute>

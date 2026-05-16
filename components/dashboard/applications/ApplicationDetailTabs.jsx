@@ -34,7 +34,7 @@ export default function ApplicationDetailTabs({ applicationId, application }) {
       {activeTab === "activity" ? (
         <ApplicationActivityTab applicationId={applicationId} />
       ) : (
-        <ApplicationDocumentsTab />
+        <ApplicationDocumentsTab applicationId={applicationId} />
       )}
     </div>
   );
