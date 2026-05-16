@@ -284,7 +284,7 @@ export default function ApplicationDocumentsTab({ applicationId }) {
                           <FileText className="w-4 h-4 text-gray-400 shrink-0 group-hover:text-blue-500 transition-colors" />
                           <div>
                             <p
-                              className="text-sm font-medium group-hover:underline"
+                              className="text-xs font-medium group-hover:underline"
                               style={{ color: APP_BLUE }}
                             >
                               {row.file_name}
@@ -295,9 +295,9 @@ export default function ApplicationDocumentsTab({ applicationId }) {
                           </div>
                         </a>
                       </td>
-                      <td className="px-5 py-3 text-sm text-gray-600">{row.related_stage || "—"}</td>
-                      <td className="px-5 py-3 text-sm text-gray-600">{row.added_by || "—"}</td>
-                      <td className="px-5 py-3 text-sm text-gray-500">{row.added_on || "—"}</td>
+                      <td className="px-5 py-3 text-xs text-gray-600">{row.related_stage || "—"}</td>
+                      <td className="px-5 py-3 text-xs text-gray-600">{row.added_by || "—"}</td>
+                      <td className="px-5 py-3 text-xs text-gray-500">{row.added_on || "—"}</td>
                     </tr>
                   ))
                 )}

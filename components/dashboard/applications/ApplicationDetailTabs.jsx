@@ -11,6 +11,7 @@ export default function ApplicationDetailTabs({ applicationId, application }) {
   return (
     <div className="space-y-3">
       <ApplicationCoursesPreview application={application} />
+      
       <div className="flex flex-wrap gap-2 border-b border-gray-200">
         {[
           { key: "activity", label: "Activity" },

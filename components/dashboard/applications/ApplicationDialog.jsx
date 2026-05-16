@@ -157,7 +157,7 @@ export default function ApplicationDialog({
               value={form.product_id}
               onChange={(e)=>setForm(prev=>({...prev,product_id:e.target.value}))}
               className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm disabled:bg-gray-50 disabled:text-gray-400"
-              disabled={!form.partner_id}
+              disabled={!form.partner_id || isProductsLoading}
             >
               <option value="">
                 {!form.partner_id
