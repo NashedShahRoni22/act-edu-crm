@@ -131,7 +131,7 @@ export default function ApplicationActivityTab({ applicationId }) {
   const isAllPending = timeline.every((item) => item.status?.toLowerCase() === "pending");
 
   return (
-    <div>
+    <section>
       {/* ── Top action bar ── */}
       <div className="px-4 pt-4 pb-3 border-b border-gray-100 flex items-center justify-between gap-3">
         {/* Progress */}
@@ -249,6 +249,6 @@ export default function ApplicationActivityTab({ applicationId }) {
           );
         })}
       </div>
-    </div>
+    </section>
   );
 }

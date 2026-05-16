@@ -18,6 +18,7 @@ import {
   Clock,
   AlertCircle,
 } from "lucide-react";
+import ApplicationInformations from "./ApplicationInformations";
 
 function ApplicationsSkeleton() {
   return (
@@ -200,7 +201,17 @@ export default function ApplicationAccordion({ contactId }) {
             </AccordionTrigger>
 
             <AccordionContent className="px-4 pt-2 pb-4 bg-gray-50">
-              <ApplicationDetailTabs applicationId={application.id} application={application} />
+              <div className="flex gap-4">
+                <ApplicationDetailTabs
+                  applicationId={application.id}
+                  application={application}
+                />
+
+                <ApplicationInformations
+                  application={application}
+                  contactId={contactId}
+                />
+              </div>
             </AccordionContent>
           </AccordionItem>
         );

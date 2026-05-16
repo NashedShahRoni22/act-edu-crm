@@ -255,7 +255,7 @@ export default function ApplicationDocumentsTab({ applicationId }) {
                   {["Filename / Checklist", "Related Stage", "Added By", "Added On"].map((h) => (
                     <th
                       key={h}
-                      className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide"
+                      className="px-5 py-3 text-left text-xs uppercase tracking-wide"
                       style={{ color: APP_BLUE }}
                     >
                       {h}
