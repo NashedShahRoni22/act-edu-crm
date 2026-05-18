@@ -140,7 +140,7 @@ export default function ApplicationInformations({ application, contactId }) {
   const forecast = financialInfo?.sales_forecast || {};
 
   return (
-    <section className="w-1/3 space-y-0">
+    <section className="space-y-0">
       {/* ── Card ── */}
       <div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
 

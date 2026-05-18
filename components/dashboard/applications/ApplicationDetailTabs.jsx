@@ -9,7 +9,7 @@ export default function ApplicationDetailTabs({ applicationId, application }) {
   const [activeTab, setActiveTab] = useState("activity");
 
   return (
-    <section className="space-y-3 w-2/3">
+    <section className="space-y-3 flex-1">
       <ApplicationCoursesPreview application={application} />
       
       <div className="flex flex-wrap gap-2 border-b border-gray-200">

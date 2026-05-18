@@ -11,6 +11,7 @@ import {
   Flame,
   TrendingUp,
   CircleDot,
+  Star,
 } from "lucide-react";
 
 const APP_BLUE = "#3B4CB8";
@@ -21,25 +22,29 @@ const RATING_OPTIONS = [
     value: 1,
     label: "Lost",
     icon: XCircle,
-    activeClassName: "text-red-500 bg-red-50",
+    bgClassName: "bg-red-50",
+    iconClassName: "text-red-500",
   },
   {
     value: 2,
     label: "Cold",
     icon: Snowflake,
-    activeClassName: "text-sky-500 bg-sky-50",
+    bgClassName: "bg-sky-50",
+    iconClassName: "text-sky-500",
   },
   {
     value: 3,
     label: "Warm",
     icon: Thermometer,
-    activeClassName: "text-amber-500 bg-amber-50",
+    bgClassName: "bg-amber-50",
+    iconClassName: "text-amber-500",
   },
   {
     value: 4,
     label: "Hot",
     icon: Flame,
-    activeClassName: "text-orange-500 bg-orange-50",
+    bgClassName: "bg-orange-50",
+    iconClassName: "text-orange-500",
   },
 ];
 
@@ -87,7 +92,7 @@ export default function ContactSummarySection({ contactSummary }) {
           transition={{ delay: index * 0.1 }}
           className="relative bg-white rounded-xl border border-gray-200 overflow-hidden p-5"
         >
-          {/* Ghost icon — faint oversized background */}
+          {/* Ghost icon */}
           <stat.icon
             className="absolute -right-2 -bottom-2 pointer-events-none"
             style={{ width: 72, height: 72, color: APP_BLUE, opacity: 0.06 }}
@@ -95,14 +100,14 @@ export default function ContactSummarySection({ contactSummary }) {
           />
 
           {/* Big count */}
-          <p className="text-4xl font-bold text-primary leading-none mb-1">
+          <p className="text-4xl font-bold text-gray-900 leading-none mb-1">
             {stat.count}
           </p>
 
           {/* Label */}
           <p className="text-xs text-gray-400 mb-3">{stat.label}</p>
 
-          {/* Pill badge subtext */}
+          {/* Pill badge */}
           <span
             className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-1 rounded-full"
             style={{ backgroundColor: APP_BLUE_LIGHT, color: APP_BLUE }}
@@ -113,25 +118,48 @@ export default function ContactSummarySection({ contactSummary }) {
         </motion.div>
       ))}
 
-      {/* ── Ratings card (unchanged) ── */}
+      {/* ── Ratings card ── */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3 }}
-        className="bg-white rounded-xl p-6 border border-gray-200"
+        className="relative bg-white rounded-xl p-5 border border-gray-200 overflow-hidden"
       >
-        <h3 className="font-semibold text-gray-900 mb-6">Ratings</h3>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-          {RATING_OPTIONS.map((rating) => {
+        {/* Ghost icon */}
+        <Star
+          className="absolute -right-2 -bottom-2 pointer-events-none"
+          style={{ width: 72, height: 72, color: APP_BLUE, opacity: 0.06 }}
+          strokeWidth={1.5}
+        />
+
+        <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400 mb-4">
+          Ratings
+        </p>
+
+        <div className="flex items-start">
+          {RATING_OPTIONS.map((rating, i) => {
             const count = ratingCounts[rating.value];
             const Icon = rating.icon;
+            const isLast = i === RATING_OPTIONS.length - 1;
             return (
-              <div
-                key={rating.value}
-                className={`flex flex-col items-center gap-2 rounded-xl px-3 py-3 text-sm font-medium ${rating.activeClassName}`}
-              >
-                <Icon className="w-6 h-6 shrink-0" />
-                <span className="text-sm font-semibold">{count}</span>
+              <div key={rating.value} className="flex items-start flex-1">
+                <div className="flex flex-col items-center gap-1.5 flex-1">
+                  {/* Colored icon pill */}
+                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${rating.bgClassName}`}>
+                    <Icon className={`w-4 h-4 ${rating.iconClassName}`} strokeWidth={2} />
+                  </div>
+                  {/* Count in matching color */}
+                  <span className={`text-xl font-semibold leading-none ${rating.iconClassName}`}>
+                    {count}
+                  </span>
+                  {/* Label */}
+                  <span className="text-[10px] font-medium uppercase tracking-wide text-gray-400">
+                    {rating.label}
+                  </span>
+                </div>
+                {!isLast && (
+                  <div className="w-px self-stretch bg-gray-100 mx-1 my-1" />
+                )}
               </div>
             );
           })}

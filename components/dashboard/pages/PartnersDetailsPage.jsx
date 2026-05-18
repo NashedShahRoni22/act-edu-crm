@@ -41,12 +41,12 @@ export default function PartnersDetailsPage({ slug }) {
 
   return (
     <TabSectionContainer>
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
-        <div className="xl:col-span-3">
+      <div className="space-y-4">
+        <div className="">
           <PartnerProfilePanel partnerId={partnerId} />
         </div>
 
-        <div className="xl:col-span-9">
+        <div className="">
           <PartnerTabsPanel partnerId={partnerId} />
         </div>
       </div>

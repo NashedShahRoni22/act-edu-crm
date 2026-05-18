@@ -6,131 +6,211 @@ import {
   UserCircle,
   Package,
   FileText,
-  MessageSquare,
-  FileStack,
   UserCog,
   UsersRound,
   Workflow,
+  Building2,
+  FileCheck,
+  FileX,
+  Clock,
+  Receipt,
+  CreditCard,
+  Shield,
+  BarChart2,
+  FileBarChart,
+  ClipboardList,
+  UserPlus,
 } from "lucide-react";
 
-export const menuItems = [
+export const railSections = [
+  // ─── HOME ──────────────────────────────────────────────────────────
   {
+    key: "home",
+    label: "Home",
     icon: LayoutDashboard,
-    label: "Dashboard",
-    path: "/dashboard",
+    groups: [
+      {
+        items: [
+          {
+            icon: LayoutDashboard,
+            label: "Dashboard",
+            path: "/dashboard",
+          },
+          {
+            icon: UserCheck,
+            label: "Office Check-in",
+            path: "/dashboard/office-checkin",
+          },
+        ],
+      },
+    ],
   },
+
+  // ─── SALES ─────────────────────────────────────────────────────────
   {
-    icon: UserCheck,
-    label: "Office Check-in",
-    path: "/dashboard/office-checkin",
-  },
-  {
+    key: "sales",
+    label: "Sales",
     icon: Users,
-    label: "Contacts",
-    path: "/dashboard/contacts",
+    groups: [
+      {
+        items: [
+          {
+            icon: Users,
+            label: "Contacts",
+            path: "/dashboard/contacts",
+          },
+          {
+            icon: UserCircle,
+            label: "Partners",
+            path: "/dashboard/partners",
+          },
+          {
+            icon: UserPlus,
+            label: "Agents",
+            path: "/dashboard/agents",
+          },
+        ],
+      },
+    ],
   },
+
+  // ─── INVENTORY ──────────────────────────────────────────────────
   {
-    icon: Briefcase,
-    label: "Services",
-    path: "/dashboard/services",
-  },
-  {
-    icon: UserCircle,
-    label: "Partners",
-    path: "/dashboard/partners",
-  },
-  {
+    key: "inventory",
+    label: "Inventory",
     icon: Package,
-    label: "Products",
-    path: "/dashboard/products",
-  },
-  {
-    icon: FileText,
-    label: "Applications",
-    path: "/dashboard/applications",
-  },
-  // {
-  //   icon: MessageSquare,
-  //   label: "Conversations",
-  //   path: "/dashboard/conversations",
-  // },
-  // {
-  //   icon: FileStack,
-  //   label: "Quotations",
-  //   path: "/dashboard/quotations",
-  // },
-  {
-    icon: UserCog,
-    label: "Accounts",
-    path: "/dashboard/accounts",
-    hasSubmenu: true,
-    children: [
+    groups: [
       {
-        label: "Invoices",
-        path: "/dashboard/invoices",
-      },
-      {
-        label: "Payments",
-        path: "/dashboard/payments",
+        items: [
+          {
+            icon: Package,
+            label: "Products",
+            path: "/dashboard/products",
+          },
+          {
+            icon: Briefcase,
+            label: "Services",
+            path: "/dashboard/services",
+          },
+        ],
       },
     ],
   },
+
+  // ─── APPLICATIONS ──────────────────────────────────────────────────
   {
-    icon: UsersRound,
-    label: "Teams",
-    path: "/dashboard/teams",
-    hasSubmenu: true,
-    children: [
+    key: "applications",
+    label: "Activity",
+    icon: FileText,
+    groups: [
       {
-        label: "Offices",
-        path: "/dashboard/offices",
-      },
-      {
-        label: "Users",
-        path: "/dashboard/users",
-      },
-      {
-        label: "Roles",
-        path: "/dashboard/roles",
+        items: [
+          {
+            icon: FileText,
+            label: "Applications",
+            path: "/dashboard/applications",
+          },
+          {
+            icon: ClipboardList,
+            label: "Tasks",
+            path: "/dashboard/tasks",
+          },
+        ],
       },
     ],
   },
+
+  // ─── FINANCE ───────────────────────────────────────────────────────
   {
-    icon: Workflow,
-    label: "Tasks",
-    path: "/dashboard/tasks",
+    key: "finance",
+    label: "Finance",
+    icon: Receipt,
+    groups: [
+      {
+        items: [
+          {
+            icon: Receipt,
+            label: "Invoices",
+            path: "/dashboard/invoice",
+          },
+          {
+            icon: CreditCard,
+            label: "Payments",
+            path: "/dashboard/payments",
+          },
+        ],
+      },
+    ],
   },
+
+  // ─── TEAM ──────────────────────────────────────────────────────────
   {
+    key: "team",
+    label: "Team",
     icon: UsersRound,
-    label: "Agents",
-    path: "/dashboard/agents",
+    groups: [
+      {
+        items: [
+          {
+            icon: Building2,
+            label: "Offices",
+            path: "/dashboard/offices",
+          },
+          {
+            icon: Users,
+            label: "Users",
+            path: "/dashboard/users",
+          },
+          {
+            icon: Shield,
+            label: "Roles",
+            path: "/dashboard/roles",
+          },
+        ],
+      },
+    ],
   },
+
+  // ─── REPORTS ───────────────────────────────────────────────────────
   {
-    icon: FileText,
+    key: "reports",
     label: "Reports",
-    path: "/dashboard/reports",
-    hasSubmenu: true,
-    children: [
+    icon: BarChart2,
+    groups: [
       {
-        label: "Clients Reports",
-        path: "/dashboard/reports/clients",
-      },
-      {
-        label: "Clients by Application",
-        path: "/dashboard/reports/clients-by-application",
-      },
-      {
-        label: "Applications",
-        path: "/dashboard/reports/applications",
-      },
-      {
-        label: "Office Check-ins",
-        path: "/dashboard/reports/office-check-ins",
-      },
-      {
-        label: "Tasks Reports",
-        path: "/dashboard/reports/tasks",
+        items: [
+          {
+            icon: Users,
+            label: "Client Reports",
+            path: "/dashboard/reports/clients",
+          },
+          {
+            icon: FileBarChart,
+            label: "By Application",
+            path: "/dashboard/reports/clients-by-application",
+          },
+          {
+            icon: FileText,
+            label: "Applications",
+            path: "/dashboard/reports/applications",
+          },
+          {
+            icon: UserCheck,
+            label: "Office Check-ins",
+            path: "/dashboard/reports/office-check-ins",
+          },
+          {
+            icon: ClipboardList,
+            label: "Tasks Reports",
+            path: "/dashboard/reports/tasks",
+          },
+        ],
       },
     ],
   },
 ];
+
+// Flat list for any legacy imports
+export const menuItems = railSections.flatMap((section) =>
+  section.groups.flatMap((group) => group.items),
+);

@@ -4,7 +4,15 @@ import { useRef, useState } from "react";
 import { useAppContext } from "@/context/context";
 import { fetchWithToken, postWithToken } from "@/helpers/api";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Upload, CheckCircle, FileText, X, ChevronDown, ChevronRight, Pencil } from "lucide-react";
+import {
+  Upload,
+  CheckCircle,
+  FileText,
+  X,
+  ChevronDown,
+  ChevronRight,
+  Pencil,
+} from "lucide-react";
 import toast from "react-hot-toast";
 
 const APP_BLUE = "#3B4CB8";
@@ -36,7 +44,13 @@ function DocumentsSkeleton() {
 }
 
 // ─── Upload modal ─────────────────────────────────────────────────────────────
-function UploadModal({ checklist, applicationId, accessToken, onClose, onSuccess }) {
+function UploadModal({
+  checklist,
+  applicationId,
+  accessToken,
+  onClose,
+  onSuccess,
+}) {
   const fileInputRef = useRef();
   const [selectedFile, setSelectedFile] = useState(null);
 
@@ -46,7 +60,11 @@ function UploadModal({ checklist, applicationId, accessToken, onClose, onSuccess
       formData.append("file", selectedFile);
       formData.append("document_checklist_id", checklist.checklist_id);
       formData.append("workflow_stage_id", checklist.stage_id);
-      return postWithToken(`/application/${applicationId}/documents`, formData, accessToken);
+      return postWithToken(
+        `/application/${applicationId}/documents`,
+        formData,
+        accessToken,
+      );
     },
     onSuccess: () => {
       toast.success("Document uploaded successfully");
@@ -64,10 +82,15 @@ function UploadModal({ checklist, applicationId, accessToken, onClose, onSuccess
         {/* header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
           <div>
-            <p className="text-sm font-semibold text-gray-800">Upload Document</p>
+            <p className="text-sm font-semibold text-gray-800">
+              Upload Document
+            </p>
             <p className="text-xs text-gray-500 mt-0.5">{checklist.name}</p>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 transition-colors"
+          >
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -85,7 +108,9 @@ function UploadModal({ checklist, applicationId, accessToken, onClose, onSuccess
               {selectedFile ? selectedFile.name : "Click to choose a file"}
             </span>
             {selectedFile && (
-              <span className="text-xs text-gray-400">{(selectedFile.size / 1024).toFixed(1)} KB</span>
+              <span className="text-xs text-gray-400">
+                {(selectedFile.size / 1024).toFixed(1)} KB
+              </span>
             )}
           </button>
           <input
@@ -130,7 +155,9 @@ function ChecklistItem({ item, onClick }) {
       ) : (
         <div className="w-4 h-4 rounded-full border-2 border-gray-300 shrink-0 group-hover:border-blue-400 transition-colors" />
       )}
-      <span className={`text-xs flex-1 leading-snug ${item.is_completed ? "text-gray-500 line-through" : "text-gray-700"}`}>
+      <span
+        className={`text-xs flex-1 leading-snug ${item.is_completed ? "text-gray-500 line-through" : "text-gray-700"}`}
+      >
         {item.name}
         {item.is_mandatory && <span className="text-red-400 ml-0.5">*</span>}
       </span>
@@ -154,6 +181,7 @@ export default function ApplicationDocumentsTab({ applicationId }) {
   const queryClient = useQueryClient();
   const [uploadTarget, setUploadTarget] = useState(null); // { checklist_id, name, stage_id }
   const [expandedStages, setExpandedStages] = useState({});
+  const [activeTab, setActiveTab] = useState("checklist");
 
   const { data, isLoading, isError } = useQuery({
     queryKey: [`/applications/${applicationId}/checklist-ui`, accessToken],
@@ -171,7 +199,9 @@ export default function ApplicationDocumentsTab({ applicationId }) {
   const isExpanded = (stageId) => expandedStages[stageId] !== false;
 
   const handleUploadSuccess = () => {
-    queryClient.invalidateQueries({ queryKey: [`/applications/${applicationId}/checklist-ui`, accessToken] });
+    queryClient.invalidateQueries({
+      queryKey: [`/applications/${applicationId}/checklist-ui`, accessToken],
+    });
   };
 
   if (isLoading) return <DocumentsSkeleton />;
@@ -184,143 +214,177 @@ export default function ApplicationDocumentsTab({ applicationId }) {
     );
   }
 
-  const totalChecklists = sidebar.reduce((acc, s) => acc + s.checklists.length, 0);
+  const totalChecklists = sidebar.reduce(
+    (acc, s) => acc + s.checklists.length,
+    0,
+  );
   const completedChecklists = sidebar.reduce(
     (acc, s) => acc + s.checklists.filter((c) => c.is_completed).length,
-    0
+    0,
   );
 
   return (
     <>
-      <div className="flex" style={{ minHeight: 400 }}>
-        {/* ── Sidebar ── */}
-        <div className="w-64 shrink-0 border-r border-gray-100 flex flex-col">
-          {/* header */}
-          <div className="px-4 pt-4 pb-3 border-b border-gray-100">
-            <p className="text-sm font-semibold text-gray-800">
-              Document Checklist ({completedChecklists}/{totalChecklists})
-            </p>
-            <p className="text-xs text-gray-400 mt-0.5 leading-snug">
-              The changes &amp; addition of the checklist will only be affected to current application only.
-            </p>
-          </div>
+      <div className="flex flex-col" style={{ minHeight: 400 }}>
+        {/* ── Tabs Header ── */}
+        <div className="flex items-center gap-6 px-5 border-b border-gray-100 shrink-0">
+          <button
+            onClick={() => setActiveTab("checklist")}
+            className={`py-3 text-sm font-semibold transition-colors border-b-2 -mb-px flex items-center gap-2 ${
+              activeTab === "checklist"
+                ? "border-[#3B4CB8] text-[#3B4CB8]"
+                : "border-transparent text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            Checklist
+            <span className="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-full">
+              {completedChecklists}/{totalChecklists}
+            </span>
+          </button>
 
-          {/* stage groups */}
-          <div className="flex-1 overflow-y-auto py-2">
-            {sidebar.map((stage) => (
-              <div key={stage.stage_id} className="mb-1">
-                {/* stage header */}
-                <button
-                  onClick={() => toggleStage(stage.stage_id)}
-                  className="w-full flex items-center gap-1.5 px-4 py-1.5 text-left hover:bg-gray-50 transition-colors"
-                >
-                  {isExpanded(stage.stage_id) ? (
-                    <ChevronDown className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-                  ) : (
-                    <ChevronRight className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-                  )}
-                  <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
-                    {stage.stage_name}
-                  </span>
-                </button>
-
-                {/* checklists */}
-                {isExpanded(stage.stage_id) && (
-                  <div className="px-3 pb-1 space-y-0.5">
-                    {stage.checklists.map((cl) => (
-                      <ChecklistItem
-                        key={cl.checklist_id}
-                        item={{ ...cl, stage_id: stage.stage_id }}
-                        onClick={(item) => setUploadTarget(item)}
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
+          <button
+            onClick={() => setActiveTab("table")}
+            className={`py-3 text-sm font-semibold transition-colors border-b-2 -mb-px ${
+              activeTab === "table"
+                ? "border-[#3B4CB8] text-[#3B4CB8]"
+                : "border-transparent text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            Documents
+          </button>
         </div>
 
-        {/* ── Documents Table ── */}
+        {/* ── Tab Content ── */}
         <div className="flex-1 flex flex-col">
-          <div className="px-5 pt-4 pb-3 border-b border-gray-100">
-            <p className="text-base font-semibold text-gray-800">Documents</p>
-          </div>
+          {activeTab === "checklist" ? (
+            <div className="flex flex-col flex-1">
+              {/* header */}
+              <div className="px-5 pt-4 pb-3 border-b border-gray-100">
+                <p className="text-sm font-semibold text-gray-800">
+                  Document Checklist
+                </p>
+                <p className="text-xs text-gray-400 mt-0.5 leading-snug">
+                  The changes &amp; addition of the checklist will only be
+                  affected to current application only.
+                </p>
+              </div>
 
-          {/* table */}
-          <div className="flex-1 overflow-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-100">
-                  {["Filename / Checklist", "Related Stage", "Added By", "Added On"].map((h) => (
-                    <th
-                      key={h}
-                      className="px-5 py-3 text-left text-xs uppercase tracking-wide"
-                      style={{ color: APP_BLUE }}
+              {/* stage groups */}
+              <div className="flex-1 overflow-y-auto py-2">
+                {sidebar.map((stage) => (
+                  <div key={stage.stage_id} className="mb-2">
+                    {/* stage header */}
+                    <button
+                      onClick={() => toggleStage(stage.stage_id)}
+                      className="w-full flex items-center gap-1.5 px-5 py-2 text-left hover:bg-gray-50 transition-colors"
                     >
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {table.length === 0 ? (
-                  <tr>
-                    <td colSpan={4} className="px-5 py-10 text-center text-sm text-gray-400">
-                      No records found
-                    </td>
-                  </tr>
-                ) : (
-                  table.map((row) => (
-                    <tr key={row.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
-                      {/* filename */}
-                      <td className="px-5 py-3">
-                        <a
-                          href={row.full_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-2 group"
-                        >
-                          <FileText className="w-4 h-4 text-gray-400 shrink-0 group-hover:text-blue-500 transition-colors" />
-                          <div>
-                            <p
-                              className="text-xs font-medium group-hover:underline"
-                              style={{ color: APP_BLUE }}
-                            >
-                              {row.file_name}
-                            </p>
-                            {row.checklist_name && (
-                              <p className="text-xs text-gray-400">{row.checklist_name}</p>
-                            )}
-                          </div>
-                        </a>
-                      </td>
-                      <td className="px-5 py-3 text-xs text-gray-600">{row.related_stage || "—"}</td>
-                      <td className="px-5 py-3 text-xs text-gray-600">{row.added_by || "—"}</td>
-                      <td className="px-5 py-3 text-xs text-gray-500">{row.added_on || "—"}</td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+                      {isExpanded(stage.stage_id) ? (
+                        <ChevronDown className="w-4 h-4 text-gray-400 shrink-0" />
+                      ) : (
+                        <ChevronRight className="w-4 h-4 text-gray-400 shrink-0" />
+                      )}
+                      <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                        {stage.stage_name}
+                      </span>
+                    </button>
 
-          {/* pagination row */}
-          <div className="px-5 py-3 border-t border-gray-100 flex items-center justify-end gap-2 text-xs text-gray-500">
-            <span>Rows per page</span>
-            <select className="border border-gray-200 rounded px-1 py-0.5 text-xs">
-              <option>10</option>
-              <option>25</option>
-              <option>50</option>
-            </select>
-            <span>1 – {table.length} of {table.length}</span>
-            <button className="p-1 rounded hover:bg-gray-100 disabled:opacity-40" disabled>
-              ‹
-            </button>
-            <button className="p-1 rounded hover:bg-gray-100 disabled:opacity-40" disabled>
-              ›
-            </button>
-          </div>
+                    {/* checklists */}
+                    {isExpanded(stage.stage_id) && (
+                      <div className="px-5 pb-2 space-y-1">
+                        {stage.checklists.map((cl) => (
+                          <ChecklistItem
+                            key={cl.checklist_id}
+                            item={{ ...cl, stage_id: stage.stage_id }}
+                            onClick={(item) => setUploadTarget(item)}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="flex-1 flex flex-col">
+              {/* table */}
+              <div className="flex-1 overflow-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-100">
+                      {[
+                        "Filename / Checklist",
+                        "Related Stage",
+                        "Added By",
+                        "Added On",
+                      ].map((h) => (
+                        <th
+                          key={h}
+                          className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wide bg-gray-50"
+                          style={{ color: APP_BLUE }}
+                        >
+                          {h}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {table.length === 0 ? (
+                      <tr>
+                        <td
+                          colSpan={4}
+                          className="px-5 py-10 text-center text-sm text-gray-400"
+                        >
+                          No records found
+                        </td>
+                      </tr>
+                    ) : (
+                      table.map((row) => (
+                        <tr
+                          key={row.id}
+                          className="border-b border-gray-50 hover:bg-gray-50 transition-colors"
+                        >
+                          {/* filename */}
+                          <td className="px-5 py-3">
+                            <a
+                              href={row.full_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-2 group"
+                            >
+                              <FileText className="w-4 h-4 text-gray-400 shrink-0 group-hover:text-blue-500 transition-colors" />
+                              <div>
+                                <p
+                                  className="text-xs font-medium group-hover:underline"
+                                  style={{ color: APP_BLUE }}
+                                >
+                                  {row.file_name}
+                                </p>
+                                {row.checklist_name && (
+                                  <p className="text-xs text-gray-400">
+                                    {row.checklist_name}
+                                  </p>
+                                )}
+                              </div>
+                            </a>
+                          </td>
+                          <td className="px-5 py-3 text-xs text-gray-600">
+                            {row.related_stage || "—"}
+                          </td>
+                          <td className="px-5 py-3 text-xs text-gray-600">
+                            {row.added_by || "—"}
+                          </td>
+                          <td className="px-5 py-3 text-xs text-gray-500">
+                            {row.added_on || "—"}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+            </div>
+          )}
         </div>
       </div>
 

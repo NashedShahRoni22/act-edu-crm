@@ -68,7 +68,7 @@ export default function ApplicationAccordion({ contactId }) {
     <Accordion
       type="single"
       collapsible
-      className="w-full border border-gray-100 rounded-xl"
+      className="w-full bg-white border border-gray-100 rounded-xl"
     >
       {applications.map((application) => {
         const getStatusIcon = (status) => {

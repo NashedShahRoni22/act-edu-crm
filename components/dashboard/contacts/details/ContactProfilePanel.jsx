@@ -1,32 +1,25 @@
 "use client";
 
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
-  CalendarDays,
   Flame,
   Mail,
   Phone,
   User,
-  Workflow,
-  MapPin,
-  FileText,
-  Globe,
-  CheckCircle,
-  Clock,
   Loader2,
-  Plus,
   Snowflake,
   Thermometer,
-  Tag,
-  X,
   XCircle,
   MessageCircle,
   Edit2,
+  Tag,
+  X,
+  Plus,
+  CheckCircle,
 } from "lucide-react";
 import { useAppContext } from "@/context/context";
 import { fetchWithToken, postWithToken } from "@/helpers/api";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -36,9 +29,12 @@ import {
 } from "@/components/ui/popover";
 import Link from "next/link";
 
+function initials(firstName, lastName) {
+  return `${firstName?.[0] ?? ""}${lastName?.[0] ?? ""}`.toUpperCase();
+}
+
 function formatDate(dateString) {
   if (!dateString) return "-";
-
   return new Date(dateString).toLocaleDateString("en-GB", {
     day: "2-digit",
     month: "short",
@@ -46,84 +42,100 @@ function formatDate(dateString) {
   });
 }
 
-function initials(firstName, lastName) {
-  return `${firstName?.[0] ?? ""}${lastName?.[0] ?? ""}`.toUpperCase();
-}
-
 const RATING_OPTIONS = [
   {
     value: 1,
     label: "Lost",
     icon: XCircle,
-    activeClassName: "text-red-600 bg-red-100",
-    idleClassName: "text-gray-400 hover:text-red-600",
+    activeClass: "bg-red-50 text-red-600 border-red-200 ring-1 ring-red-300",
+    idleClass: "text-gray-400 hover:text-red-500 hover:bg-red-50 border-transparent",
   },
   {
     value: 2,
     label: "Cold",
     icon: Snowflake,
-    activeClassName: "text-sky-600 bg-sky-100",
-    idleClassName: "text-gray-400 hover:text-sky-600",
+    activeClass: "bg-sky-50 text-sky-600 border-sky-200 ring-1 ring-sky-300",
+    idleClass: "text-gray-400 hover:text-sky-500 hover:bg-sky-50 border-transparent",
   },
   {
     value: 3,
     label: "Warm",
     icon: Thermometer,
-    activeClassName: "text-amber-600 bg-amber-100",
-    idleClassName: "text-gray-400 hover:text-amber-600",
+    activeClass: "bg-amber-50 text-amber-600 border-amber-200 ring-1 ring-amber-300",
+    idleClass: "text-gray-400 hover:text-amber-500 hover:bg-amber-50 border-transparent",
   },
   {
     value: 4,
     label: "Hot",
     icon: Flame,
-    activeClassName: "text-orange-600 bg-orange-100",
-    idleClassName: "text-gray-400 hover:text-orange-600",
+    activeClass: "bg-orange-50 text-orange-600 border-orange-200 ring-1 ring-orange-300",
+    idleClass: "text-gray-400 hover:text-orange-500 hover:bg-orange-50 border-transparent",
   },
 ];
 
-function DetailRow({ icon: Icon, label, value }) {
-  return (
-    <div className="flex items-start gap-3">
-      <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center shrink-0 mt-0.5">
-        <Icon className="w-4 h-4 text-gray-500" />
-      </div>
-      <div className="min-w-0">
-        <p className="text-xs text-gray-500">{label}</p>
-        <p className="text-sm font-medium text-gray-900 wrap-break-word">
-          {value || "-"}
-        </p>
-      </div>
-    </div>
-  );
+const AVATAR_COLORS = [
+  "from-violet-500 to-indigo-600",
+  "from-sky-500 to-cyan-600",
+  "from-emerald-500 to-teal-600",
+  "from-rose-500 to-pink-600",
+  "from-amber-500 to-orange-600",
+];
+
+function getAvatarGradient(name = "") {
+  const idx = name.charCodeAt(0) % AVATAR_COLORS.length;
+  return AVATAR_COLORS[idx];
 }
 
-function ContactProfilePanelSkeleton() {
+function Skeleton() {
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-6 animate-pulse">
-      <div className="flex items-center gap-3 mb-6">
-        <div className="w-14 h-14 rounded-full bg-gray-200" />
-        <div className="space-y-2">
-          <div className="h-4 w-40 bg-gray-200 rounded" />
-          <div className="h-4 w-20 bg-gray-100 rounded" />
+    <div className="bg-white border border-gray-100 rounded-2xl p-5 animate-pulse">
+      <div className="flex items-center gap-5">
+        <div className="w-16 h-16 rounded-2xl bg-gray-200 shrink-0" />
+        <div className="flex-1 space-y-2">
+          <div className="h-5 w-48 bg-gray-200 rounded" />
+          <div className="h-4 w-32 bg-gray-100 rounded" />
+          <div className="h-4 w-24 bg-gray-100 rounded" />
+        </div>
+        <div className="hidden md:flex gap-2">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="w-16 h-16 rounded-xl bg-gray-100" />
+          ))}
         </div>
       </div>
-
-      <div className="space-y-4">
-        {Array.from({ length: 5 }).map((_, idx) => (
-          <div key={idx} className="flex items-start gap-3">
-            <div className="w-8 h-8 rounded-lg bg-gray-100" />
-            <div className="space-y-2 w-full">
-              <div className="h-3 w-20 bg-gray-100 rounded" />
-              <div className="h-4 w-4/5 bg-gray-200 rounded" />
-            </div>
-          </div>
-        ))}
-      </div>
     </div>
   );
 }
 
-export default function ContactProfilePanel({ contactId }) {
+function ActionButton({ href, onClick, disabled, loading, icon: Icon, label, colorClass }) {
+  const base =
+    "group relative flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed border";
+  const content = (
+    <>
+      {loading ? (
+        <Loader2 className="w-4 h-4 animate-spin" />
+      ) : (
+        <Icon className="w-4 h-4" />
+      )}
+      <span className="hidden sm:inline">{label}</span>
+    </>
+  );
+
+  if (href) {
+    return (
+      <Link href={href} className={`${base} ${colorClass}`}>
+        {content}
+      </Link>
+    );
+  }
+
+  return (
+    <button type="button" onClick={onClick} disabled={disabled} className={`${base} ${colorClass}`}>
+      {content}
+    </button>
+  );
+}
+
+export default function ContactProfileHeader({ contactId }) {
   const { accessToken } = useAppContext();
   const queryClient = useQueryClient();
   const [tagsOpen, setTagsOpen] = useState(false);
@@ -140,50 +152,10 @@ export default function ContactProfilePanel({ contactId }) {
     enabled: !!accessToken,
   });
 
-  const updateTagsMutation = useMutation({
-    mutationFn: async (tagId) => {
-      const fd = new FormData();
-      fd.append("_method", "PUT");
-      fd.append("tag_id", String(tagId));
-      return postWithToken(`/contacts/${contactId}/tags`, fd, accessToken);
-    },
-    onSuccess: (res) => {
-      if (res?.status === "success") {
-        queryClient.invalidateQueries({
-          queryKey: [`/contacts/${contactId}`, accessToken],
-        });
-        queryClient.invalidateQueries({ queryKey: ["/contacts", accessToken] });
-        toast.success(res.message || "Tags updated successfully");
-      } else {
-        toast.error(res?.message || "Failed to update tags");
-      }
-    },
-    onError: () => toast.error("Failed to update tags"),
-  });
-
-  const removeTagMutation = useMutation({
-    mutationFn: async (tagId) => {
-      const fd = new FormData();
-      fd.append("_method", "DELETE");
-      return postWithToken(
-        `/contacts/${contactId}/tags/${tagId}`,
-        fd,
-        accessToken,
-      );
-    },
-    onSuccess: (res) => {
-      if (res?.status === "success") {
-        queryClient.invalidateQueries({
-          queryKey: [`/contacts/${contactId}`, accessToken],
-        });
-        queryClient.invalidateQueries({ queryKey: ["/contacts", accessToken] });
-        toast.success(res.message || "Tag removed successfully");
-      } else {
-        toast.error(res?.message || "Failed to remove tag");
-      }
-    },
-    onError: () => toast.error("Failed to remove tag"),
-  });
+  const invalidate = () => {
+    queryClient.invalidateQueries({ queryKey: [`/contacts/${contactId}`, accessToken] });
+    queryClient.invalidateQueries({ queryKey: ["/contacts", accessToken] });
+  };
 
   const updateRatingMutation = useMutation({
     mutationFn: async (rating) => {
@@ -193,15 +165,8 @@ export default function ContactProfilePanel({ contactId }) {
       return postWithToken(`/contacts/${contactId}/rating`, fd, accessToken);
     },
     onSuccess: (res) => {
-      if (res?.status === "success") {
-        queryClient.invalidateQueries({
-          queryKey: [`/contacts/${contactId}`, accessToken],
-        });
-        queryClient.invalidateQueries({ queryKey: ["/contacts", accessToken] });
-        toast.success(res.message || "Rating updated successfully");
-      } else {
-        toast.error(res?.message || "Failed to update rating");
-      }
+      if (res?.status === "success") { invalidate(); toast.success(res.message || "Rating updated"); }
+      else toast.error(res?.message || "Failed to update rating");
     },
     onError: () => toast.error("Failed to update rating"),
   });
@@ -213,15 +178,8 @@ export default function ContactProfilePanel({ contactId }) {
       return postWithToken(`/contacts/${contactId}/mark-as-prospect`, fd, accessToken);
     },
     onSuccess: (res) => {
-      if (res?.status === "success") {
-        queryClient.invalidateQueries({
-          queryKey: [`/contacts/${contactId}`, accessToken],
-        });
-        queryClient.invalidateQueries({ queryKey: ["/contacts", accessToken] });
-        toast.success(res.message || "Contact marked as prospect successfully");
-      } else {
-        toast.error(res?.message || "Failed to mark as prospect");
-      }
+      if (res?.status === "success") { invalidate(); toast.success(res.message || "Marked as prospect"); }
+      else toast.error(res?.message || "Failed");
     },
     onError: () => toast.error("Failed to mark as prospect"),
   });
@@ -233,443 +191,255 @@ export default function ContactProfilePanel({ contactId }) {
       return postWithToken(`/contacts/${contactId}/archive`, fd, accessToken);
     },
     onSuccess: (res) => {
-      if (res?.status === "success") {
-        queryClient.invalidateQueries({
-          queryKey: [`/contacts/${contactId}`, accessToken],
-        });
-        queryClient.invalidateQueries({ queryKey: ["/contacts", accessToken] });
-        toast.success(res.message || "Contact archived successfully");
-      } else {
-        toast.error(res?.message || "Failed to archive contact");
-      }
+      if (res?.status === "success") { invalidate(); toast.success(res.message || "Archived"); }
+      else toast.error(res?.message || "Failed to archive");
     },
-    onError: () => toast.error("Failed to archive contact"),
+    onError: () => toast.error("Failed to archive"),
   });
 
-  if (isLoading) return <ContactProfilePanelSkeleton />;
+  const updateTagsMutation = useMutation({
+    mutationFn: async (tagId) => {
+      const fd = new FormData();
+      fd.append("_method", "PUT");
+      fd.append("tag_id", String(tagId));
+      return postWithToken(`/contacts/${contactId}/tags`, fd, accessToken);
+    },
+    onSuccess: (res) => {
+      if (res?.status === "success") { invalidate(); toast.success(res.message || "Tag added"); }
+      else toast.error(res?.message || "Failed to add tag");
+    },
+    onError: () => toast.error("Failed to update tags"),
+  });
 
-  if (isError) {
-    return (
-      <div className="bg-white rounded-2xl border border-red-100 p-6 text-sm text-red-600">
-        Failed to load contact details.
-      </div>
-    );
-  }
+  const removeTagMutation = useMutation({
+    mutationFn: async (tagId) => {
+      const fd = new FormData();
+      fd.append("_method", "DELETE");
+      return postWithToken(`/contacts/${contactId}/tags/${tagId}`, fd, accessToken);
+    },
+    onSuccess: (res) => {
+      if (res?.status === "success") { invalidate(); toast.success(res.message || "Tag removed"); }
+      else toast.error(res?.message || "Failed to remove tag");
+    },
+    onError: () => toast.error("Failed to remove tag"),
+  });
+
+  if (isLoading) return <Skeleton />;
+  if (isError) return (
+    <div className="bg-red-50 border border-red-100 rounded-2xl p-5 text-sm text-red-600">
+      Failed to load contact.
+    </div>
+  );
 
   const contact = data?.data;
+  if (!contact) return null;
+
   const contactTags = contact?.tags || [];
   const allTags = allTagsData?.data || [];
   const addableTags = allTags.filter(
-    (tag) =>
-      !contactTags.some(
-        (contactTag) => Number(contactTag.id) === Number(tag.id),
-      ),
+    (tag) => !contactTags.some((ct) => Number(ct.id) === Number(tag.id))
   );
   const contactRating = Number(contact?.contact_rating ?? 0);
+  const fullName = `${contact.first_name || ""} ${contact.last_name || ""}`.trim();
+  const avatarGradient = getAvatarGradient(contact.first_name);
 
-  if (!contact) {
-    return (
-      <div className="bg-white rounded-2xl border border-gray-100 p-6 text-sm text-gray-500">
-        Contact details are not available.
-      </div>
-    );
-  }
+  const statusColors = {
+    Active: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    Inactive: "bg-gray-100 text-gray-500 border-gray-200",
+    Prospect: "bg-violet-50 text-violet-700 border-violet-200",
+  };
+  const statusClass = statusColors[contact.status] || "bg-blue-50 text-blue-700 border-blue-200";
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-6 space-y-6">
-      <div className="flex flex-col items-center gap-3">
-        <div className="w-14 h-14 rounded-full bg-[#3B4CB8] text-white flex items-center justify-center text-lg font-bold">
-          {initials(contact.first_name, contact.last_name)}
-        </div>
+    <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
+      <div className="p-5 lg:p-6">
+        <div className="flex flex-col sm:flex-row sm:items-start gap-5">
 
-        <h2 className="text-xl font-semibold text-gray-900">
-          {contact.first_name} {contact.last_name}
-        </h2>
-        <span className="inline-flex mt-1 px-2.5 py-0.5 rounded-md text-xs font-medium bg-blue-50 text-blue-700">
-          {contact.status || "Unknown"}
-        </span>
-        {contact.internal_id && (
-          <p className="text-xs text-gray-500 mt-1">
-            ID: {contact.internal_id}
-          </p>
-        )}
-      </div>
-
-      {/* Actions sections */}
-      <div className="flex items-center justify-center gap-1">
-        {contact.phone && (
-          <a
-            href={`sms:${contact.phone}`}
-            className="group relative p-2 rounded-lg text-gray-600 hover:text-blue-600 hover:bg-blue-50 transition-colors"
-            title="Send Message"
-          >
-            <MessageCircle className="w-4 h-4" />
-            <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-              Message
-            </span>
-          </a>
-        )}
-
-        {contact.email && (
-          <a
-            href={`mailto:${contact.email}`}
-            className="group relative p-2 rounded-lg text-gray-600 hover:text-sky-600 hover:bg-sky-50 transition-colors"
-            title="Send Email"
-          >
-            <Mail className="w-4 h-4" />
-            <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-              Email
-            </span>
-          </a>
-        )}
-
-        <Link
-          href={`/dashboard/edit-client/${contact.id}`}
-          className="group relative p-2 rounded-lg text-gray-600 hover:text-amber-600 hover:bg-amber-50 transition-colors"
-          title="Edit Client"
-        >
-          <Edit2 className="w-4 h-4" />
-          <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-            Edit
-          </span>
-        </Link>
-
-        <button
-          type="button"
-          onClick={() => markAsProspectMutation.mutate()}
-          disabled={markAsProspectMutation.isPending}
-          className="group relative p-2 rounded-lg text-gray-600 hover:text-purple-600 hover:bg-purple-50 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-          title="Mark As Prospect"
-        >
-          {markAsProspectMutation.isPending ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <User className="w-4 h-4" />
-          )}
-          <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-            Prospect
-          </span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => archiveMutation.mutate()}
-          disabled={archiveMutation.isPending}
-          className="group relative p-2 rounded-lg text-gray-600 hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-          title="Archive Contact"
-        >
-          {archiveMutation.isPending ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <XCircle className="w-4 h-4" />
-          )}
-          <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-            Archive
-          </span>
-        </button>
-      </div>
-      {/* Rating Section */}
-      <div className="space-y-3 py-4 border-y border-gray-100">
-        {/* <h3 className="text-sm font-semibold text-gray-900">Rating</h3> */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-          {RATING_OPTIONS.map((rating) => {
-            const isActive = contactRating === rating.value;
-            const Icon = rating.icon;
-
-            return (
-              <button
-                key={rating.value}
-                type="button"
-                onClick={() => updateRatingMutation.mutate(rating.value)}
-                disabled={updateRatingMutation.isPending}
-                className={`cursor-pointer flex flex-col items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition-colors disabled:opacity-60 ${
-                  isActive ? rating.activeClassName : rating.idleClassName
-                }`}
-                title={`Set rating to ${rating.label}`}
-              >
-                <Icon className="w-6 h-6 shrink-0" />
-                <span className="text-xs">{rating.label}</span>
-              </button>
-            );
-          })}
-        </div>
-        {/* {contactRating ? (
-          <p className="text-xs text-gray-500">
-            Current rating: {RATING_OPTIONS.find((item) => item.value === contactRating)?.label || "Unknown"}
-          </p>
-        ) : (
-          <p className="text-xs text-gray-500">No rating set yet</p>
-        )} */}
-      </div>
-
-      {/* Contact Information Section */}
-      <div className="space-y-4">
-        <h3 className="text-sm font-semibold text-gray-900">
-          Contact Information
-        </h3>
-        <DetailRow icon={Mail} label="Email" value={contact.email} />
-        {contact.secondary_email && (
-          <DetailRow
-            icon={Mail}
-            label="Secondary Email"
-            value={contact.secondary_email}
-          />
-        )}
-        <DetailRow icon={Phone} label="Phone" value={contact.phone} />
-        <DetailRow
-          icon={User}
-          label="Assignee"
-          value={`${contact.assignee?.first_name || ""} ${contact.assignee?.last_name || ""}`.trim()}
-        />
-        <DetailRow icon={Workflow} label="Lead Source" value={contact.source} />
-      </div>
-
-      {/* Personal Information Section */}
-      {(contact.gender || contact.dob) && (
-        <div className="space-y-4 pt-2 border-t border-gray-100">
-          <h3 className="text-sm font-semibold text-gray-900">
-            Personal Information
-          </h3>
-          {contact.gender && (
-            <DetailRow icon={User} label="Gender" value={contact.gender} />
-          )}
-          {contact.dob && (
-            <DetailRow
-              icon={CalendarDays}
-              label="Date of Birth"
-              value={formatDate(contact.dob)}
-            />
-          )}
-          {contact.degree_levels && (
-            <DetailRow
-              icon={Globe}
-              label="Degree Levels"
-              value={contact.degree_levels}
-            />
-          )}
-          {contact.preferred_intake && (
-            <DetailRow
-              icon={Clock}
-              label="Preferred Intake"
-              value={contact.preferred_intake}
-            />
-          )}
-        </div>
-      )}
-
-      {/* Address Section */}
-      {(contact.street ||
-        contact.city ||
-        contact.state ||
-        contact.postal_code ||
-        contact.country) && (
-        <div className="space-y-4 pt-2 border-t border-gray-100">
-          <h3 className="text-sm font-semibold text-gray-900">Address</h3>
-          {contact.street && (
-            <DetailRow icon={MapPin} label="Street" value={contact.street} />
-          )}
-          {contact.city && (
-            <DetailRow icon={MapPin} label="City" value={contact.city} />
-          )}
-          {contact.state && (
-            <DetailRow icon={MapPin} label="State" value={contact.state} />
-          )}
-          {contact.postal_code && (
-            <DetailRow
-              icon={MapPin}
-              label="Postal Code"
-              value={contact.postal_code}
-            />
-          )}
-          {contact.country && (
-            <DetailRow icon={Globe} label="Country" value={contact.country} />
-          )}
-        </div>
-      )}
-
-      {/* Passport & Visa Section */}
-      {(contact.passport_number ||
-        contact.country_of_passport ||
-        contact.visa_type ||
-        contact.visa_expiry_date) && (
-        <div className="space-y-4 pt-2 border-t border-gray-100">
-          <h3 className="text-sm font-semibold text-gray-900">
-            Passport & Visa
-          </h3>
-          {contact.country_of_passport && (
-            <DetailRow
-              icon={FileText}
-              label="Passport Country"
-              value={contact.country_of_passport}
-            />
-          )}
-          {contact.passport_number && (
-            <DetailRow
-              icon={FileText}
-              label="Passport Number"
-              value={contact.passport_number}
-            />
-          )}
-          {contact.visa_type && (
-            <DetailRow
-              icon={Globe}
-              label="Visa Type"
-              value={contact.visa_type}
-            />
-          )}
-          {contact.visa_expiry_date && (
-            <DetailRow
-              icon={CalendarDays}
-              label="Visa Expiry"
-              value={formatDate(contact.visa_expiry_date)}
-            />
-          )}
-        </div>
-      )}
-
-      {/* Portal Status Section */}
-      <div className="space-y-3 pt-2 border-t border-gray-100">
-        <h3 className="text-sm font-semibold text-gray-900">Tags</h3>
-
-        {contactTags.length > 0 ? (
-          <div className="flex flex-wrap gap-2">
-            {contactTags.map((tag) => (
-              <Badge
-                key={tag.id}
-                variant="secondary"
-                className="flex items-center gap-1.5 bg-blue-50 text-blue-700 border border-blue-100"
-              >
-                <Tag className="w-3 h-3" />
-                <span>{tag.name}</span>
-                <button
-                  type="button"
-                  onClick={() => removeTagMutation.mutate(tag.id)}
-                  disabled={removeTagMutation.isPending}
-                  className="ml-0.5 hover:text-red-600 disabled:opacity-50"
-                  title="Remove tag"
-                >
-                  {removeTagMutation.isPending ? (
-                    <Loader2 className="w-3 h-3 animate-spin" />
-                  ) : (
-                    <X className="w-3 h-3" />
-                  )}
-                </button>
-              </Badge>
-            ))}
-          </div>
-        ) : (
-          <p className="text-sm text-gray-500">No tags assigned</p>
-        )}
-
-        <Popover open={tagsOpen} onOpenChange={setTagsOpen}>
-          <PopoverTrigger asChild>
-            <button
-              type="button"
-              className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+          {/* Avatar + Identity */}
+          <div className="flex items-center gap-4 flex-1 min-w-0">
+            <div
+              className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${avatarGradient} text-white flex items-center justify-center text-xl font-bold shrink-0 shadow-md`}
             >
-              <Plus className="w-4 h-4" />
-              Add Tag
-            </button>
-          </PopoverTrigger>
-          <PopoverContent className="w-64 p-1" align="start">
-            <div className="max-h-56 overflow-y-auto">
-              {addableTags.length === 0 ? (
-                <p className="text-sm text-gray-500 text-center py-3 px-2">
-                  No more tags to add
-                </p>
-              ) : (
-                addableTags.map((tag) => (
-                  <button
-                    key={tag.id}
-                    type="button"
-                    onClick={() => {
-                      updateTagsMutation.mutate(tag.id);
-                      setTagsOpen(false);
-                    }}
-                    disabled={updateTagsMutation.isPending}
-                    className="w-full text-left px-3 py-2 text-sm rounded-md hover:bg-gray-50 disabled:opacity-50"
-                  >
-                    {tag.name}
-                  </button>
-                ))
+              {initials(contact.first_name, contact.last_name)}
+            </div>
+
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-lg font-semibold text-gray-900 truncate">{fullName}</h1>
+                <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium border ${statusClass}`}>
+                  {contact.status || "Unknown"}
+                </span>
+                {contact.client_portal_active && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium bg-teal-50 text-teal-700 border border-teal-200">
+                    <CheckCircle className="w-3 h-3" /> Portal
+                  </span>
+                )}
+              </div>
+
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1.5 text-sm text-gray-500">
+                {contact.email && (
+                  <span className="flex items-center gap-1.5 truncate">
+                    <Mail className="w-3.5 h-3.5 shrink-0" />
+                    <span className="truncate">{contact.email}</span>
+                  </span>
+                )}
+                {contact.phone && (
+                  <span className="flex items-center gap-1.5">
+                    <Phone className="w-3.5 h-3.5 shrink-0" />
+                    {contact.phone}
+                  </span>
+                )}
+                {contact.source && (
+                  <span className="text-gray-400">via {contact.source}</span>
+                )}
+              </div>
+
+              {/* Tags row */}
+              {(contactTags.length > 0 || true) && (
+                <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                  {contactTags.map((tag) => (
+                    <Badge
+                      key={tag.id}
+                      variant="secondary"
+                      className="flex items-center gap-1 h-5 px-1.5 text-xs bg-indigo-50 text-indigo-700 border border-indigo-100 hover:bg-indigo-100 transition-colors"
+                    >
+                      <Tag className="w-2.5 h-2.5" />
+                      {tag.name}
+                      <button
+                        type="button"
+                        onClick={() => removeTagMutation.mutate(tag.id)}
+                        disabled={removeTagMutation.isPending}
+                        className="ml-0.5 hover:text-red-600 disabled:opacity-50"
+                      >
+                        <X className="w-2.5 h-2.5" />
+                      </button>
+                    </Badge>
+                  ))}
+
+                  <Popover open={tagsOpen} onOpenChange={setTagsOpen}>
+                    <PopoverTrigger asChild>
+                      <button
+                        type="button"
+                        className="flex items-center gap-1 h-5 px-1.5 text-xs text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded border border-dashed border-gray-300 hover:border-indigo-300 transition-all"
+                      >
+                        <Plus className="w-2.5 h-2.5" /> Tag
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-56 p-1" align="start">
+                      <div className="max-h-48 overflow-y-auto">
+                        {addableTags.length === 0 ? (
+                          <p className="text-xs text-gray-500 text-center py-3">No tags to add</p>
+                        ) : (
+                          addableTags.map((tag) => (
+                            <button
+                              key={tag.id}
+                              type="button"
+                              onClick={() => { updateTagsMutation.mutate(tag.id); setTagsOpen(false); }}
+                              disabled={updateTagsMutation.isPending}
+                              className="w-full text-left px-3 py-1.5 text-sm rounded hover:bg-gray-50 disabled:opacity-50"
+                            >
+                              {tag.name}
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                </div>
               )}
             </div>
-          </PopoverContent>
-        </Popover>
-      </div>
+          </div>
 
-      {/* Portal Status Section */}
-      <div className="space-y-3 pt-2 border-t border-gray-100">
-        <h3 className="text-sm font-semibold text-gray-900">Portal Access</h3>
-        <div className="flex items-center gap-2 p-3 rounded-lg bg-gray-50">
-          <CheckCircle
-            className={`w-4 h-4 ${
-              contact.client_portal_active ? "text-green-600" : "text-gray-400"
-            }`}
-          />
-          <span className="text-sm text-gray-700">
-            Client Portal:{" "}
-            <span
-              className={`font-medium ${
-                contact.client_portal_active
-                  ? "text-green-600"
-                  : "text-gray-500"
-              }`}
-            >
-              {contact.client_portal_active ? "Active" : "Inactive"}
-            </span>
-          </span>
-        </div>
-      </div>
-
-      {/* Timeline Section */}
-      <div className="space-y-3 pt-2 border-t border-gray-100">
-        <h3 className="text-sm font-semibold text-gray-900">Timeline</h3>
-        <DetailRow
-          icon={CalendarDays}
-          label="Created"
-          value={formatDate(contact.created_at)}
-        />
-        <DetailRow
-          icon={CalendarDays}
-          label="Last Updated"
-          value={formatDate(contact.updated_at)}
-        />
-      </div>
-
-      {/* Applications Section */}
-      <div className="pt-2 border-t border-gray-100">
-        <p className="text-xs text-gray-500 mb-2">Applications on record</p>
-        <p className="text-2xl font-bold text-gray-900">
-          {contact.applications?.length || 0}
-        </p>
-        {contact.applications?.length > 0 && (
-          <div className="mt-3 space-y-2">
-            {contact.applications.map((app) => (
-              <div
-                key={app.id}
-                className="text-xs bg-gray-50 rounded-lg p-2 border border-gray-100"
-              >
-                <p className="font-medium text-gray-900">
-                  {app.workflow?.name || "Workflow"}
-                </p>
-                <p className="text-gray-500">
-                  {app.courses?.length || 0} course
-                  {(app.courses?.length || 0) !== 1 ? "s" : ""} •{" "}
-                  <span
-                    className={`${
-                      app.status === "In Progress"
-                        ? "text-amber-700"
-                        : "text-green-700"
+          {/* Right side: Rating + Actions */}
+          <div className="flex flex-col gap-3 shrink-0">
+            {/* Rating pills */}
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs text-gray-400 mr-1 hidden lg:block">Rating</span>
+              {RATING_OPTIONS.map((opt) => {
+                const isActive = contactRating === opt.value;
+                const Icon = opt.icon;
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => updateRatingMutation.mutate(opt.value)}
+                    disabled={updateRatingMutation.isPending}
+                    title={opt.label}
+                    className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-medium transition-all duration-150 disabled:opacity-50 ${
+                      isActive ? opt.activeClass : opt.idleClass
                     }`}
                   >
-                    {app.status}
-                  </span>
-                </p>
-              </div>
-            ))}
+                    <Icon className="w-3.5 h-3.5 shrink-0" />
+                    <span className="hidden md:inline">{opt.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Action buttons */}
+            <div className="flex items-center gap-1.5 justify-end">
+              {contact.phone && (
+                <ActionButton
+                  href={`sms:${contact.phone}`}
+                  icon={MessageCircle}
+                  label="Message"
+                  colorClass="border-gray-200 text-gray-600 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200"
+                />
+              )}
+              {contact.email && (
+                <ActionButton
+                  href={`mailto:${contact.email}`}
+                  icon={Mail}
+                  label="Email"
+                  colorClass="border-gray-200 text-gray-600 hover:bg-sky-50 hover:text-sky-600 hover:border-sky-200"
+                />
+              )}
+              <ActionButton
+                href={`/dashboard/edit-client/${contact.id}`}
+                icon={Edit2}
+                label="Edit"
+                colorClass="border-gray-200 text-gray-600 hover:bg-amber-50 hover:text-amber-600 hover:border-amber-200"
+              />
+              <ActionButton
+                onClick={() => markAsProspectMutation.mutate()}
+                disabled={markAsProspectMutation.isPending}
+                loading={markAsProspectMutation.isPending}
+                icon={User}
+                label="Prospect"
+                colorClass="border-gray-200 text-gray-600 hover:bg-purple-50 hover:text-purple-600 hover:border-purple-200"
+              />
+              <ActionButton
+                onClick={() => archiveMutation.mutate()}
+                disabled={archiveMutation.isPending}
+                loading={archiveMutation.isPending}
+                icon={XCircle}
+                label="Archive"
+                colorClass="border-gray-200 text-gray-600 hover:bg-red-50 hover:text-red-600 hover:border-red-200"
+              />
+            </div>
           </div>
-        )}
+        </div>
+
+        {/* Footer meta strip */}
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-1 mt-4 pt-4 border-t border-gray-50 text-xs text-gray-400">
+          {contact.internal_id && <span>ID: <span className="font-mono text-gray-500">{contact.internal_id}</span></span>}
+          {contact.assignee && (
+            <span>
+              Assigned to{" "}
+              <span className="text-gray-600 font-medium">
+                {contact.assignee.first_name} {contact.assignee.last_name}
+              </span>
+            </span>
+          )}
+          {contact.created_at && (
+            <span>Added {formatDate(contact.created_at)}</span>
+          )}
+          {contact.applications?.length > 0 && (
+            <span>
+              <span className="font-semibold text-gray-600">{contact.applications.length}</span> application{contact.applications.length !== 1 ? "s" : ""}
+            </span>
+          )}
+        </div>
       </div>
     </div>
   );

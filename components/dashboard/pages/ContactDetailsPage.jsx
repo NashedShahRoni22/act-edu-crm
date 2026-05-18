@@ -1,6 +1,5 @@
 "use client";
 
-import SectionContainer from "../SectionContainer";
 import TabSectionContainer from "../TabSectionContainer";
 import ContactProfilePanel from "../contacts/details/ContactProfilePanel";
 import ContactTabsPanel from "../contacts/details/ContactTabsPanel";
@@ -42,12 +41,12 @@ export default function ContactDetailsPage({ slug }) {
 
   return (
     <TabSectionContainer>
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
-        <div className="xl:col-span-3">
+      <div className="space-y-4">
+        <div className="">
           <ContactProfilePanel contactId={contactId} />
         </div>
 
-        <div className="xl:col-span-9">
+        <div className="">
           <ContactTabsPanel contactId={contactId} />
         </div>
       </div>

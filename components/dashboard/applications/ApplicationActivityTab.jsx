@@ -130,6 +130,11 @@ export default function ApplicationActivityTab({ applicationId }) {
 
   const isAllPending = timeline.every((item) => item.status?.toLowerCase() === "pending");
 
+  const previousStage =
+    currentStageIndex > 0 ? timeline[currentStageIndex - 1] : null;
+
+  const isComplete = progress === 100;
+
   return (
     <section>
       {/* ── Top action bar ── */}
@@ -152,7 +157,10 @@ export default function ApplicationActivityTab({ applicationId }) {
 
         {/* Action button */}
         <div className="shrink-0">
-          {isFinalStageCurrent ? (
+          {isComplete ? (
+            /* Completed — hide buttons, show completion badge */
+            <div className="text-xs text-green-600 font-semibold">✓ Completed</div>
+          ) : isFinalStageCurrent ? (
             /* Mark as Done — on last stage */
             <button
               onClick={() => markAsCompleteMutation.mutate()}
@@ -162,24 +170,36 @@ export default function ApplicationActivityTab({ applicationId }) {
               <CheckCircle className="w-4 h-4" />
               {markAsCompleteMutation.isPending ? "Marking..." : "Mark as Done"}
             </button>
-          ) : nextStage ? (
-            /* Proceed to Next Stage */
-            <button
-              onClick={() => changeStagesMutation.mutate(nextStage.stage_id)}
-              disabled={changeStagesMutation.isPending}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-semibold text-white transition-opacity disabled:opacity-50 whitespace-nowrap"
-              style={{ backgroundColor: APP_BLUE }}
-            >
-              {changeStagesMutation.isPending ? (
-                "Moving..."
-              ) : (
-                <>
-                  Proceed to Next Stage
-                  <ArrowRight className="w-4 h-4" />
-                </>
+          ) : (
+            /* Milestone stepper: Revert + Proceed buttons */
+            <div className="flex items-center gap-2">
+              {previousStage && (
+                <button
+                  onClick={() => changeStagesMutation.mutate(previousStage.stage_id)}
+                  disabled={changeStagesMutation.isPending}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 disabled:opacity-50 transition-colors whitespace-nowrap"
+                >
+                  ← Revert
+                </button>
               )}
-            </button>
-          ) : null}
+              {nextStage ? (
+                <button
+                  onClick={() => changeStagesMutation.mutate(nextStage.stage_id)}
+                  disabled={changeStagesMutation.isPending}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-semibold text-white transition-opacity disabled:opacity-50 whitespace-nowrap"
+                  style={{ backgroundColor: APP_BLUE }}
+                >
+                  {changeStagesMutation.isPending ? (
+                    "Moving..."
+                  ) : (
+                    <>
+                      Proceed →
+                    </>
+                  )}
+                </button>
+              ) : null}
+            </div>
+          )}
         </div>
       </div>
 

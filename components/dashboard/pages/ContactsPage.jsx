@@ -9,16 +9,16 @@ import {
   Upload,
   Search,
   Plus,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import SectionContainer from "../SectionContainer";
 import { useAppContext } from "@/context/context";
 import { useQuery } from "@tanstack/react-query";
 import { fetchWithToken } from "@/helpers/api";
 import Link from "next/link";
 import ContactCard from "../contacts/ContactCard";
-
-const PAGE_SIZE = 9; // 3-col grid looks best with multiples of 3
 
 const AVATAR_COLORS = [
   "bg-[#3B4CB8]",
@@ -101,129 +101,119 @@ function StatCard({ count, label, icon: Icon, iconBg, delay }) {
   );
 }
 
+// ── Select arrow component ────────────────────────────────────
+const SelectArrow = () => (
+  <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+    <svg
+      className="w-4 h-4 text-gray-400"
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M19 9l-7 7-7-7"
+      />
+    </svg>
+  </div>
+);
+
 // ── Main page ────────────────────────────────────────────────
 export default function ContactsPage() {
   const { accessToken } = useAppContext();
-  const [selectedStatus, setSelectedStatus] = useState("all");
-  const [selectedSource, setSelectedSource] = useState("all");
+  const [selectedStatus, setSelectedStatus] = useState("Lead");
+  const [selectedSource, setSelectedSource] = useState("System");
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+
+  // Debounce search query
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+      setCurrentPage(1); // Reset to first page on new search
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Build query params for API
+  const queryParams = new URLSearchParams();
+  if (selectedStatus && selectedStatus !== "all") {
+    queryParams.append("status", selectedStatus);
+  }
+  if (selectedSource && selectedSource !== "all") {
+    queryParams.append("source", selectedSource);
+  }
+  if (debouncedSearch.trim()) {
+    queryParams.append("search", debouncedSearch);
+  }
+  queryParams.append("page", currentPage.toString());
+  queryParams.append("rows", "5");
 
   const {
     data: contactsData,
     isLoading,
     error,
   } = useQuery({
-    queryKey: ["/contacts", accessToken],
+    queryKey: [`/contacts?${queryParams.toString()}`, accessToken],
     queryFn: fetchWithToken,
     enabled: !!accessToken,
   });
 
-  const contacts = contactsData?.data || [];
+  const contacts = useMemo(() => contactsData?.data || [], [contactsData?.data]);
+  
+  // Pagination info from API
+  const paginationInfo = useMemo(
+    () => ({
+      currentPage: contactsData?.current_page || 1,
+      lastPage: contactsData?.last_page || 1,
+      total: contactsData?.total || 0,
+      perPage: contactsData?.per_page || 5,
+      from: contactsData?.from,
+      to: contactsData?.to,
+      hasNextPage: !!contactsData?.next_page_url,
+      hasPrevPage: !!contactsData?.prev_page_url,
+    }),
+    [contactsData],
+  );
 
-  // Derive unique sources from API data
-  const sources = useMemo(() => {
-    const s = new Set(contacts.map((c) => c.source).filter(Boolean));
-    return ["all", ...Array.from(s)];
-  }, [contacts]);
-
-  // Stats derived from real data
+  // Stats derived from meta data
   const stats = useMemo(
     () => [
       {
-        count: contacts.length,
+        count: contactsData?.meta?.total || 0,
         label: "Total Contacts",
         icon: Users,
         iconBg: "bg-[#3B4CB8]",
       },
       {
-        count: contacts.filter((c) => c.status === "Lead").length,
+        count: contactsData?.meta?.lead || 0,
         label: "Leads",
         icon: UserPlus,
         iconBg: "bg-[#1FB3C8]",
       },
       {
-        count: contacts.filter((c) => c.status === "Client").length,
+        count: contactsData?.meta?.client || 0,
         label: "Clients",
         icon: UserCheck,
         iconBg: "bg-[#F5C842]",
       },
       {
-        count: contacts.filter((c) => c.status === "Prospect").length,
+        count: contactsData?.meta?.prospect || 0,
         label: "Prospects",
         icon: Target,
         iconBg: "bg-[#2DD4BF]",
       },
     ],
-    [contacts],
-  );
-
-  // Filter + search
-  const filtered = useMemo(
-    () =>
-      contacts.filter((c) => {
-        const matchStatus =
-          selectedStatus === "all" || c.status === selectedStatus;
-        const matchSource =
-          selectedSource === "all" || c.source === selectedSource;
-        const matchSearch = [c.first_name, c.last_name, c.email, c.phone]
-          .join(" ")
-          .toLowerCase()
-          .includes(searchQuery.toLowerCase());
-        return matchStatus && matchSource && matchSearch;
-      }),
-    [contacts, selectedStatus, selectedSource, searchQuery],
-  );
-
-  // Pagination
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const safePage = Math.min(currentPage, totalPages);
-  const paginated = filtered.slice(
-    (safePage - 1) * PAGE_SIZE,
-    safePage * PAGE_SIZE,
+    [contactsData?.meta],
   );
 
   const handleFilterChange = (setter) => (e) => {
     setter(e.target.value);
-    setCurrentPage(1);
+    setCurrentPage(1); // Reset to first page on filter change
   };
-
-  const getPageNumbers = () => {
-    const pages = [];
-    if (totalPages <= 7) {
-      for (let i = 1; i <= totalPages; i++) pages.push(i);
-    } else {
-      pages.push(1);
-      if (safePage > 3) pages.push("...");
-      for (
-        let i = Math.max(2, safePage - 1);
-        i <= Math.min(totalPages - 1, safePage + 1);
-        i++
-      )
-        pages.push(i);
-      if (safePage < totalPages - 2) pages.push("...");
-      pages.push(totalPages);
-    }
-    return pages;
-  };
-
-  const SelectArrow = () => (
-    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-      <svg
-        className="w-4 h-4 text-gray-400"
-        fill="none"
-        stroke="currentColor"
-        viewBox="0 0 24 24"
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={2}
-          d="M19 9l-7 7-7-7"
-        />
-      </svg>
-    </div>
-  );
 
   return (
     <SectionContainer>
@@ -258,10 +248,7 @@ export default function ContactsPage() {
                 type="text"
                 placeholder="Search contacts..."
                 value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value);
-                  setCurrentPage(1);
-                }}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-9 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#3B4CB8]/40 focus:border-[#3B4CB8] transition-all"
               />
             </div>
@@ -273,8 +260,8 @@ export default function ContactsPage() {
                 onChange={handleFilterChange(setSelectedStatus)}
                 className="appearance-none pl-4 pr-9 py-2.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#3B4CB8]/40"
               >
-                <option value="all">All Status</option>
                 <option value="Lead">Lead</option>
+                <option value="Archived">Archived</option>
                 <option value="Client">Client</option>
                 <option value="Prospect">Prospect</option>
               </select>
@@ -288,11 +275,7 @@ export default function ContactsPage() {
                 onChange={handleFilterChange(setSelectedSource)}
                 className="appearance-none pl-4 pr-9 py-2.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#3B4CB8]/40"
               >
-                {sources.map((src) => (
-                  <option key={src} value={src}>
-                    {src === "all" ? "All Sources" : src}
-                  </option>
-                ))}
+                <option value="System">System</option>
               </select>
               <SelectArrow />
             </div>
@@ -321,26 +304,12 @@ export default function ContactsPage() {
             </Link>
           </div>
         </div>
-
-        {/* Count */}
-        <div className="mt-4 pt-4 border-t border-gray-100">
-          <p className="text-sm text-gray-500">
-            Showing{" "}
-            <span className="font-medium text-gray-900">
-              {filtered.length === 0 ? 0 : (safePage - 1) * PAGE_SIZE + 1}–
-              {Math.min(safePage * PAGE_SIZE, filtered.length)}
-            </span>{" "}
-            of{" "}
-            <span className="font-medium text-gray-900">{filtered.length}</span>{" "}
-            contacts
-          </p>
-        </div>
       </motion.div>
 
       {/* Cards grid */}
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {Array.from({ length: PAGE_SIZE }).map((_, i) => (
+          {Array.from({ length: 5 }).map((_, i) => (
             <SkeletonCard key={i} />
           ))}
         </div>
@@ -348,18 +317,16 @@ export default function ContactsPage() {
         <div className="text-center py-16 text-sm text-red-500">
           Failed to load contacts. Please try again.
         </div>
-      ) : paginated.length === 0 ? (
+      ) : contacts.length === 0 ? (
         <div className="text-center py-16">
           <Users className="w-12 h-12 text-gray-300 mx-auto mb-2" />
           <p className="text-sm text-gray-500">
-            {searchQuery || selectedStatus !== "all" || selectedSource !== "all"
-              ? "No contacts match your filters."
-              : "No contacts found."}
+            {searchQuery ? "No contacts match your search." : "No contacts found."}
           </p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {paginated.map((contact, index) => {
+          {contacts.map((contact, index) => {
             const badgeStyle =
               STATUS_BADGE[contact.status] ?? "bg-gray-100 text-gray-600";
             const color = avatarColor(contact.first_name, contact.last_name);
@@ -387,48 +354,70 @@ export default function ContactsPage() {
         </div>
       )}
 
-      {/* Pagination */}
-      {!isLoading && totalPages > 1 && (
-        <div className="flex items-center justify-center gap-1 pt-2">
-          <button
-            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-            disabled={safePage === 1}
-            className="px-3 py-1.5 text-sm rounded-md border border-gray-300 text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-          >
-            Prev
-          </button>
+      {/* Pagination info and controls */}
+      {!isLoading && contacts.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex flex-col sm:flex-row items-center justify-between gap-4"
+        >
+          {/* Info */}
+          <p className="text-sm text-gray-600">
+            Showing{" "}
+            <span className="font-medium text-gray-900">
+              {paginationInfo.from || 0} – {paginationInfo.to || 0}
+            </span>{" "}
+            of{" "}
+            <span className="font-medium text-gray-900">{paginationInfo.total}</span>{" "}
+            contacts
+          </p>
 
-          {getPageNumbers().map((page, i) =>
-            page === "..." ? (
-              <span
-                key={`e-${i}`}
-                className="px-2 py-1.5 text-sm text-gray-400"
-              >
-                …
-              </span>
-            ) : (
+          {/* Pagination controls */}
+          {paginationInfo.lastPage > 1 && (
+            <div className="flex items-center gap-2">
               <button
-                key={page}
-                onClick={() => setCurrentPage(page)}
-                className={`px-3 py-1.5 text-sm rounded-md border transition-colors ${
-                  safePage === page
-                    ? "bg-[#3B4CB8] text-white border-[#3B4CB8] font-medium"
-                    : "border-gray-300 text-gray-600 hover:bg-gray-100"
-                }`}
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={!paginationInfo.hasPrevPage}
+                className="p-2 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                title="Previous page"
               >
-                {page}
+                <ChevronLeft className="w-4 h-4" />
               </button>
-            ),
-          )}
 
-          <button
-            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-            disabled={safePage === totalPages}
-            className="px-3 py-1.5 text-sm rounded-md border border-gray-300 text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-          >
-            Next
-          </button>
-        </div>
+              <div className="flex items-center gap-1">
+                {Array.from({ length: paginationInfo.lastPage }).map((_, i) => {
+                  const page = i + 1;
+                  return (
+                    <button
+                      key={page}
+                      onClick={() => setCurrentPage(page)}
+                      className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                        paginationInfo.currentPage === page
+                          ? "bg-[#3B4CB8] text-white"
+                          : "text-gray-600 hover:bg-gray-100 border border-gray-300"
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <button
+                onClick={() =>
+                  setCurrentPage((p) =>
+                    Math.min(paginationInfo.lastPage, p + 1),
+                  )
+                }
+                disabled={!paginationInfo.hasNextPage}
+                className="p-2 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                title="Next page"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+        </motion.div>
       )}
     </SectionContainer>
   );
