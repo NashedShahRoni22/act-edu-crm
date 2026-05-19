@@ -163,14 +163,14 @@ export default function DashboardPage() {
             Overview & Stats - All Branches
           </p>
         </div>
-        <motion.button
+        {/* <motion.button
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
           className="flex items-center gap-2 px-4 py-2.5 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors shadow-sm"
         >
           <Plus className="w-4 h-4" />
           Invite User
-        </motion.button>
+        </motion.button> */}
       </motion.div>
 
       {/* ============ Contact Summary Section ============ */}

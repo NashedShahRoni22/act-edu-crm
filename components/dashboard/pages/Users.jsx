@@ -39,6 +39,8 @@ const emptyForm = {
   position_title: "",
   office_id: "",
   role: "User",
+  password: "",
+  password_confirmation: "",
 };
 
 // const USER_ROLES = ["Admin", "User", "Manager", "Agent"];
@@ -222,6 +224,8 @@ export default function Users() {
       position_title: user.position_title || "",
       office_id: user.office_id || "",
       role: user.role || "User",
+      password: "",
+      password_confirmation: "",
     });
     setEditingUser(user);
     setShowDialog(true);
@@ -275,6 +279,41 @@ export default function Users() {
       return;
     }
 
+    // Password validation: minimum 8 chars and must include upper, lower, number, special
+    const pwdRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
+    if (!editingUser) {
+      if (!formData.password || formData.password.length < 8) {
+        toast.error("Password is required and must be at least 8 characters");
+        return;
+      }
+      if (!pwdRegex.test(formData.password)) {
+        toast.error(
+          "Password must include uppercase, lowercase, number, and special character"
+        );
+        return;
+      }
+      if (formData.password !== formData.password_confirmation) {
+        toast.error("Password and confirmation do not match");
+        return;
+      }
+    } else if (formData.password) {
+      // updating password: validate if provided
+      if (formData.password.length < 8) {
+        toast.error("Password must be at least 8 characters");
+        return;
+      }
+      if (!pwdRegex.test(formData.password)) {
+        toast.error(
+          "Password must include uppercase, lowercase, number, and special character"
+        );
+        return;
+      }
+      if (formData.password !== formData.password_confirmation) {
+        toast.error("Password and confirmation do not match");
+        return;
+      }
+    }
+
     const fd = new FormData();
     if (editingUser) fd.append("_method", "PUT");
 
@@ -287,6 +326,15 @@ export default function Users() {
     fd.append("position_title", formData.position_title.trim());
     fd.append("office_id", formData.office_id);
     fd.append("role", formData.role);
+
+    // Append password fields when creating or when provided during update
+    if (!editingUser) {
+      fd.append("password", formData.password);
+      fd.append("password_confirmation", formData.password_confirmation || "");
+    } else if (formData.password) {
+      fd.append("password", formData.password);
+      fd.append("password_confirmation", formData.password_confirmation || "");
+    }
 
     if (editingUser) {
       updateMutation.mutate({ id: editingUser.id, fd });
@@ -313,6 +361,18 @@ export default function Users() {
       default:
         return "bg-gray-100 text-gray-700";
     }
+  };
+
+  const formatJoinedDate = (joinedAt) => {
+    if (!joinedAt) return "-";
+    const parsedDate = new Date(joinedAt);
+    if (Number.isNaN(parsedDate.getTime())) return joinedAt;
+
+    return parsedDate.toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
   };
 
   const isPending = createMutation.isPending || updateMutation.isPending;
@@ -457,19 +517,16 @@ export default function Users() {
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-200">
                   <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                    User
+                    User / Role
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                     Contact
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                    Position
+                    Office / Position
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                    Office
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                    Role
+                    Joined
                   </th>
                   <th className="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
                     Actions
@@ -490,9 +547,13 @@ export default function Users() {
                         </div>
                       </td>
                       <td className="px-6 py-4"><div className="h-4 w-36 bg-gray-200 rounded" /></td>
+                      <td className="px-6 py-4">
+                        <div className="space-y-2">
+                          <div className="h-4 w-28 bg-gray-200 rounded" />
+                          <div className="h-3 w-24 bg-gray-100 rounded" />
+                        </div>
+                      </td>
                       <td className="px-6 py-4"><div className="h-4 w-24 bg-gray-200 rounded" /></td>
-                      <td className="px-6 py-4"><div className="h-4 w-28 bg-gray-200 rounded" /></td>
-                      <td className="px-6 py-4"><div className="h-6 w-20 bg-gray-200 rounded-full" /></td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex justify-end gap-2">
                           <div className="w-8 h-8 bg-gray-200 rounded-lg" />
@@ -503,7 +564,7 @@ export default function Users() {
                   ))
                 ) : users.length === 0 ? (
                   <tr>
-                    <td colSpan="6" className="px-6 py-12 text-center">
+                    <td colSpan="5" className="px-6 py-12 text-center">
                       <p className="text-sm text-gray-500">
                         No users found matching current filters.
                       </p>
@@ -531,7 +592,14 @@ export default function Users() {
                             <p className="text-sm font-medium text-gray-900">
                               {user.first_name} {user.last_name}
                             </p>
-                            <p className="text-xs text-gray-500">ID: {user.id}</p>
+                            <span
+                              className={`mt-1 inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${getRoleBadgeColor(
+                                user.role
+                              )}`}
+                            >
+                              <Shield className="w-3 h-3" />
+                              {user.role}
+                            </span>
                           </div>
                         </div>
                       </td>
@@ -552,36 +620,29 @@ export default function Users() {
                         </div>
                       </td>
 
-                      {/* Position */}
+                      {/* Office / Position */}
                       <td className="px-6 py-4">
-                        {user.position_title ? (
+                        <div className="space-y-1">
                           <div className="flex items-center gap-2 text-sm text-gray-900">
-                            <Briefcase className="w-4 h-4 text-gray-400" />
-                            {user.position_title}
+                            <Building2 className="w-4 h-4 text-gray-400" />
+                            <span>{getOfficeName(user.office_id)}</span>
                           </div>
-                        ) : (
-                          <span className="text-sm text-gray-400 italic">Not set</span>
-                        )}
-                      </td>
-
-                      {/* Office */}
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2 text-sm text-gray-900">
-                          <Building2 className="w-4 h-4 text-gray-400" />
-                          {getOfficeName(user.office_id)}
+                          {user.position_title ? (
+                            <div className="flex items-center gap-2 text-sm text-gray-600">
+                              <Briefcase className="w-4 h-4 text-gray-400" />
+                              <span>{user.position_title}</span>
+                            </div>
+                          ) : (
+                            <span className="text-sm text-gray-400 italic">Not set</span>
+                          )}
                         </div>
                       </td>
 
-                      {/* Role */}
+                      {/* Joined */}
                       <td className="px-6 py-4">
-                        <span
-                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${getRoleBadgeColor(
-                            user.role
-                          )}`}
-                        >
-                          <Shield className="w-3 h-3" />
-                          {user.role}
-                        </span>
+                        <p className="text-sm text-gray-600">
+                          {formatJoinedDate(user.joined_at)}
+                        </p>
                       </td>
 
                       {/* Actions */}

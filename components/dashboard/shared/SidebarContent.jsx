@@ -171,9 +171,9 @@ export default function SidebarContent({
             {userInfo?.role ?? "Administrator"}
           </p>
         </div>
-        <button className="p-1 rounded-md hover:bg-gray-100 transition-colors shrink-0">
+        <Link href={"/dashboard/settings"} className="p-1 rounded-md hover:bg-gray-100 transition-colors shrink-0">
           <Settings className="w-4 h-4 text-gray-400" />
-        </button>
+        </Link>
       </div>
     </>
   );

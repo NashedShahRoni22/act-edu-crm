@@ -19,6 +19,15 @@ export default function UserViewDialog({
   getOfficeName,
   getRoleBadgeColor,
 }) {
+  const applicationsSummary = user?.applications_summary || {};
+  const joinedDate = user?.joined_at
+    ? new Date(user.joined_at).toLocaleDateString("en-GB", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      })
+    : "-";
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
@@ -38,6 +47,12 @@ export default function UserViewDialog({
                 Personal Information
               </h3>
               <div className="space-y-3">
+                {user.joined_at && (
+                  <div className="flex items-center gap-3 text-sm">
+                    <span className="text-gray-600">Joined:</span>
+                    <span className="font-medium text-gray-900">{joinedDate}</span>
+                  </div>
+                )}
                 <div className="flex items-center gap-3 text-sm">
                   <Mail className="w-4 h-4 text-gray-400" />
                   <span className="text-gray-600">Email:</span>
@@ -82,6 +97,30 @@ export default function UserViewDialog({
                     {user.role}
                   </span>
                 </div>
+              </div>
+            </div>
+
+            <div>
+              <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">
+                  A
+                </span>
+                Application Summary
+              </h3>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {[
+                  { label: "Total", value: applicationsSummary.total ?? 0, className: "bg-blue-50 text-blue-700" },
+                  { label: "Pending", value: applicationsSummary.pending ?? 0, className: "bg-yellow-50 text-yellow-700" },
+                  { label: "In Progress", value: applicationsSummary.in_progress ?? 0, className: "bg-blue-50 text-blue-700" },
+                  { label: "Completed", value: applicationsSummary.completed ?? 0, className: "bg-green-50 text-green-700" },
+                  { label: "Discontinued", value: applicationsSummary.discontinued ?? 0, className: "bg-red-50 text-red-700" },
+                  { label: "Assigned Clients", value: user.assigned_clients_count ?? 0, className: "bg-indigo-50 text-indigo-700" },
+                ].map((item) => (
+                  <div key={item.label} className={`rounded-xl px-4 py-3 ${item.className}`}>
+                    <p className="text-xs font-medium uppercase tracking-wide opacity-80">{item.label}</p>
+                    <p className="mt-1 text-lg font-semibold">{item.value}</p>
+                  </div>
+                ))}
               </div>
             </div>
           </div>

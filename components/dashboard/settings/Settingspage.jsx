@@ -20,7 +20,7 @@ export default function Settingspage() {
       <motion.aside
         initial={{ x: -20, opacity: 0 }}
         animate={{ x: 0, opacity: 1 }}
-        className="w-64 bg-white border-r border-gray-200 overflow-y-auto flex-shrink-0"
+        className="fixed w-64 bg-white min-h-screen border-r border-gray-200 overflow-y-auto flex-shrink-0"
       >
         <div className="p-4">
           <h2 className="text-lg font-semibold text-gray-900 mb-1">
@@ -66,7 +66,7 @@ export default function Settingspage() {
       </motion.aside>
 
       {/* Settings Content Area */}
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-auto ml-64">
         <AnimatePresence mode="wait">
           <motion.div
             key={activeNav}

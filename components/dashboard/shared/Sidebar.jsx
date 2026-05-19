@@ -6,6 +6,8 @@ import { usePathname } from "next/navigation";
 import SidebarContent from "./SidebarContent";
 import { useAppContext } from "@/context/context";
 import { railSections } from "./MenuItems";
+import { fetchWithToken } from "@/helpers/api";
+import { useQuery } from "@tanstack/react-query";
 
 // ── helpers ────────────────────────────────────────────────────────────
 const isPathActive = (pathname, path) => {
@@ -67,7 +69,16 @@ function RailItem({ section, isActive, onClick, onMouseEnter }) {
 // ── Sidebar ────────────────────────────────────────────────────────────
 export default function Sidebar({ isOpen, setIsOpen }) {
   const pathname = usePathname();
-  const { userInfo } = useAppContext();
+  const { userInfo, accessToken } = useAppContext();
+
+  // Fetch permissions list
+  const { data, isLoading } = useQuery({
+    queryKey: ["/user-permissions", accessToken],
+    queryFn: fetchWithToken,
+    enabled: !!accessToken,
+  });
+  const permissions = data?.data || [];
+  console.log(permissions);
 
   const [activeSectionKey, setActiveSectionKey] = useState(
     () => getActiveSectionKey(pathname)
