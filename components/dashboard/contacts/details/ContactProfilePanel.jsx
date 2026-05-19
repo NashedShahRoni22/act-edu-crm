@@ -22,11 +22,15 @@ import { useAppContext } from "@/context/context";
 import { fetchWithToken, postWithToken } from "@/helpers/api";
 import { toast } from "react-hot-toast";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { Textarea } from "@/components/ui/textarea";
 import Link from "next/link";
 
 function initials(firstName, lastName) {
@@ -40,6 +44,14 @@ function formatDate(dateString) {
     month: "short",
     year: "numeric",
   });
+}
+
+function toDateInputValue(dateString) {
+  if (!dateString) return "";
+  if (typeof dateString === "string" && /^\d{4}-\d{2}-\d{2}$/.test(dateString)) return dateString;
+  const parsedDate = new Date(dateString);
+  if (Number.isNaN(parsedDate.getTime())) return "";
+  return parsedDate.toISOString().slice(0, 10);
 }
 
 const RATING_OPTIONS = [
@@ -139,6 +151,12 @@ export default function ContactProfileHeader({ contactId }) {
   const { accessToken } = useAppContext();
   const queryClient = useQueryClient();
   const [tagsOpen, setTagsOpen] = useState(false);
+  const [expiryDialogOpen, setExpiryDialogOpen] = useState(false);
+  const [expiryForm, setExpiryForm] = useState({
+    visa_expiry_date: "",
+    health_insurance_expiry_date: "",
+    update_note: "",
+  });
 
   const { data, isLoading, isError } = useQuery({
     queryKey: [`/contacts/${contactId}`, accessToken],
@@ -152,10 +170,48 @@ export default function ContactProfileHeader({ contactId }) {
     enabled: !!accessToken,
   });
 
+  const { data: expiryDatesData } = useQuery({
+    queryKey: [`/contacts/${contactId}/update-expiry-dates`, accessToken],
+    queryFn: fetchWithToken,
+    enabled: !!accessToken,
+  });
+
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: [`/contacts/${contactId}`, accessToken] });
+    queryClient.invalidateQueries({ queryKey: [`/contacts/${contactId}/update-expiry-dates`, accessToken] });
     queryClient.invalidateQueries({ queryKey: ["/contacts", accessToken] });
   };
+
+  const openExpiryDialog = () => {
+    const expiryData = expiryDatesData?.data || {};
+    setExpiryForm({
+      visa_expiry_date: toDateInputValue(expiryData.visa_expiry_date),
+      health_insurance_expiry_date: toDateInputValue(expiryData.health_insurance_expiry_date),
+      update_note: "",
+    });
+    setExpiryDialogOpen(true);
+  };
+
+  const updateExpiryDatesMutation = useMutation({
+    mutationFn: async (formValues) => {
+      const fd = new FormData();
+      fd.append("_method", "PUT");
+      fd.append("visa_expiry_date", formValues.visa_expiry_date || "");
+      fd.append("health_insurance_expiry_date", formValues.health_insurance_expiry_date || "");
+      fd.append("update_note", formValues.update_note || "");
+      return postWithToken(`/contacts/${contactId}/update-expiry-dates`, fd, accessToken);
+    },
+    onSuccess: (res) => {
+      if (res?.status === "success") {
+        invalidate();
+        setExpiryDialogOpen(false);
+        toast.success(res.message || "Expiry dates updated");
+      } else {
+        toast.error(res?.message || "Failed to update expiry dates");
+      }
+    },
+    onError: () => toast.error("Failed to update expiry dates"),
+  });
 
   const updateRatingMutation = useMutation({
     mutationFn: async (rating) => {
@@ -227,6 +283,7 @@ export default function ContactProfileHeader({ contactId }) {
 
   const contactTags = contact?.tags || [];
   const allTags = allTagsData?.data || [];
+  const expiryData = expiryDatesData?.data || {};
   const addableTags = allTags.filter(
     (tag) => !contactTags.some((ct) => Number(ct.id) === Number(tag.id))
   );
@@ -249,7 +306,7 @@ export default function ContactProfileHeader({ contactId }) {
           {/* Avatar + Identity */}
           <div className="flex items-center gap-4 flex-1 min-w-0">
             <div
-              className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${avatarGradient} text-white flex items-center justify-center text-xl font-bold shrink-0 shadow-md`}
+              className={`w-16 h-16 rounded-2xl bg-linear-to-br ${avatarGradient} text-white flex items-center justify-center text-xl font-bold shrink-0 shadow-md`}
             >
               {initials(contact.first_name, contact.last_name)}
             </div>
@@ -338,6 +395,43 @@ export default function ContactProfileHeader({ contactId }) {
                   </Popover>
                 </div>
               )}
+
+              <div className="mt-3 rounded-2xl border border-gray-200 bg-gray-50/70 p-3">
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">Expiry dates</p>
+                    <p className="text-xs text-gray-500">Quick status for key documents</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={openExpiryDialog}
+                    className="rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 hover:border-[#3B4CB8] hover:text-[#3B4CB8] hover:bg-[#3B4CB8]/5 transition-colors"
+                  >
+                    Edit dates
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {[
+                    { key: "visa_expiry_date", label: "Visa expiry date", value: expiryData.visa_expiry_date },
+                    { key: "health_insurance_expiry_date", label: "Health insurance expiry", value: expiryData.health_insurance_expiry_date },
+                  ].map((field) => (
+                    <div key={field.key} className="rounded-xl border border-white/80 bg-white px-3 py-2.5 flex items-center justify-between gap-3 shadow-sm">
+                      <div className="min-w-0">
+                        <p className="text-[11px] font-medium uppercase tracking-wide text-gray-400">{field.label}</p>
+                        <p className="text-sm font-semibold text-gray-900 truncate">{field.value ? formatDate(field.value) : "Not set"}</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={openExpiryDialog}
+                        className="shrink-0 rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs font-medium text-gray-600 hover:border-[#3B4CB8] hover:text-[#3B4CB8] hover:bg-[#3B4CB8]/5 transition-colors"
+                      >
+                        {field.value ? "Edit" : "Add"}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
 
@@ -424,26 +518,84 @@ export default function ContactProfileHeader({ contactId }) {
         </div>
 
         {/* Footer meta strip */}
-        <div className="flex flex-wrap items-center gap-x-5 gap-y-1 mt-4 pt-4 border-t border-gray-50 text-xs text-gray-400">
-          {contact.internal_id && <span>ID: <span className="font-mono text-gray-500">{contact.internal_id}</span></span>}
+        <div className="flex flex-wrap items-center gap-2 mt-4 pt-4 border-t border-gray-50 text-xs text-gray-400">
+          {contact.internal_id && <span className="rounded-full bg-gray-100 px-2.5 py-1">ID <span className="font-mono text-gray-500">{contact.internal_id}</span></span>}
           {contact.assignee && (
-            <span>
-              Assigned to{" "}
-              <span className="text-gray-600 font-medium">
-                {contact.assignee.first_name} {contact.assignee.last_name}
-              </span>
+            <span className="rounded-full bg-gray-100 px-2.5 py-1">
+              Assigned to <span className="text-gray-600 font-medium">{contact.assignee.first_name} {contact.assignee.last_name}</span>
             </span>
           )}
-          {contact.created_at && (
-            <span>Added {formatDate(contact.created_at)}</span>
-          )}
+          {contact.created_at && <span className="rounded-full bg-gray-100 px-2.5 py-1">Added {formatDate(contact.created_at)}</span>}
           {contact.applications?.length > 0 && (
-            <span>
+            <span className="rounded-full bg-gray-100 px-2.5 py-1">
               <span className="font-semibold text-gray-600">{contact.applications.length}</span> application{contact.applications.length !== 1 ? "s" : ""}
             </span>
           )}
         </div>
       </div>
+
+      <Dialog open={expiryDialogOpen} onOpenChange={setExpiryDialogOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Update expiry dates</DialogTitle>
+          </DialogHeader>
+
+          <form
+            className="space-y-4"
+            onSubmit={(event) => {
+              event.preventDefault();
+              updateExpiryDatesMutation.mutate(expiryForm);
+            }}
+          >
+            <div className="space-y-2">
+              <Label htmlFor="visa_expiry_date">Visa expiry date</Label>
+              <Input
+                id="visa_expiry_date"
+                type="date"
+                value={expiryForm.visa_expiry_date}
+                onChange={(event) => setExpiryForm((current) => ({ ...current, visa_expiry_date: event.target.value }))}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="health_insurance_expiry_date">Health insurance expiry date</Label>
+              <Input
+                id="health_insurance_expiry_date"
+                type="date"
+                value={expiryForm.health_insurance_expiry_date}
+                onChange={(event) => setExpiryForm((current) => ({ ...current, health_insurance_expiry_date: event.target.value }))}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="update_note">Update note</Label>
+              <Textarea
+                id="update_note"
+                value={expiryForm.update_note}
+                onChange={(event) => setExpiryForm((current) => ({ ...current, update_note: event.target.value }))}
+                placeholder="Add a short note about this change"
+              />
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setExpiryDialogOpen(false)}
+                className="rounded-md border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={updateExpiryDatesMutation.isPending}
+                className="inline-flex items-center justify-center rounded-md bg-[#3B4CB8] px-4 py-2 text-sm font-medium text-white hover:bg-[#34459f] disabled:opacity-60"
+              >
+                {updateExpiryDatesMutation.isPending ? "Saving..." : "Save changes"}
+              </button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
