@@ -19,6 +19,8 @@ export default function DeleteConfirmDialog({
   itemName,
   onConfirm,
   isLoading = false,
+  confirmLabel = "Delete",
+  confirmingLabel = "Deleting...",
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -40,7 +42,7 @@ export default function DeleteConfirmDialog({
             {itemName && (
               <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
                 <p className="text-sm font-medium text-red-900">
-                  Item: <span className="font-semibold">{itemName}</span>
+                  {itemName}
                 </p>
               </div>
             )}
@@ -64,7 +66,7 @@ export default function DeleteConfirmDialog({
             }}
             disabled={isLoading}
           >
-            {isLoading ? "Deleting..." : "Delete"}
+              {isLoading ? confirmingLabel : confirmLabel}
           </Button>
         </DialogFooter>
       </DialogContent>

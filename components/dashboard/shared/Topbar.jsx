@@ -84,7 +84,7 @@ export default function Topbar({ toggleSidebar }) {
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
-            className="flex items-center gap-2 px-3.5 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors shadow-sm"
+            className="flex items-center gap-2 px-3.5 py-2 bg-primary text-white rounded-lg text-sm font-medium"
           >
             <UserCheck className="w-4 h-4" />
             <span className="hidden lg:inline">Office Check-in</span>

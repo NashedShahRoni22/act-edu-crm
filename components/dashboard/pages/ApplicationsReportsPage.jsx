@@ -1,17 +1,16 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { fetchWithToken } from "@/helpers/api";
 import { useAppContext } from "@/context/context";
 import SectionContainer from "../SectionContainer";
 import { motion } from "framer-motion";
 import ApplicationsReportsSkeleton from "./ApplicationsReportsSkeleton";
+import Pagination from "../shared/Pagination";
 import {
   ChevronUp,
   ChevronDown,
-  ChevronLeft,
-  ChevronRight,
   Zap,
   CheckCircle2,
   Clock,
@@ -72,16 +71,26 @@ export default function ApplicationsReportsPage() {
     ? `/reports/applications?page=${currentPage}&workflow_id=${selectedWorkflowId}`
     : `/reports/applications?page=${currentPage}`;
 
-  const { data: reportsData, isLoading } = useQuery({
+  const { data: reportsData, isLoading, isFetching } = useQuery({
     queryKey: [queryString, accessToken],
     queryFn: fetchWithToken,
     enabled: !!accessToken,
+    placeholderData: keepPreviousData,
   });
 
   const paginationData = reportsData?.data || {};
   const applications = paginationData?.data || [];
   const totalPages = paginationData?.last_page || 1;
   const total = paginationData?.total || 0;
+  const paginationInfo = {
+    currentPage: paginationData?.current_page || 1,
+    lastPage: totalPages,
+    total,
+    from: paginationData?.from,
+    to: paginationData?.to,
+    hasNextPage: !!paginationData?.next_page_url,
+    hasPrevPage: !!paginationData?.prev_page_url,
+  };
 
   const handleSort = (key) => {
     setSortConfig({
@@ -412,52 +421,15 @@ export default function ApplicationsReportsPage() {
             </table>
           </div>
 
-          {/* Pagination */}
-          <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
-            <div className="text-sm text-gray-600">
-              Showing page <span className="font-semibold">{currentPage}</span>{" "}
-              of <span className="font-semibold">{totalPages}</span>
+          {isFetching && !isLoading && (
+            <div className="px-6 py-2 border-t border-gray-200 text-right text-xs text-gray-500">
+              Updating...
             </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                disabled={currentPage === 1}
-                className="p-2 hover:bg-gray-100 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <ChevronLeft className="w-5 h-5" />
-              </button>
-
-              <div className="flex gap-1">
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map(
-                  (page) => (
-                    <button
-                      key={page}
-                      onClick={() => setCurrentPage(page)}
-                      className={`px-3 py-1 rounded-lg text-sm font-medium ${
-                        currentPage === page
-                          ? "bg-blue-500 text-white"
-                          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                      }`}
-                    >
-                      {page}
-                    </button>
-                  ),
-                )}
-              </div>
-
-              <button
-                onClick={() =>
-                  setCurrentPage(Math.min(totalPages, currentPage + 1))
-                }
-                disabled={currentPage === totalPages}
-                className="p-2 hover:bg-gray-100 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <ChevronRight className="w-5 h-5" />
-              </button>
-            </div>
-          </div>
+          )}
         </motion.div>
       </motion.div>
+
+      <Pagination {...paginationInfo} onPageChange={setCurrentPage} noun="applications" />
     </SectionContainer>
   );
 }

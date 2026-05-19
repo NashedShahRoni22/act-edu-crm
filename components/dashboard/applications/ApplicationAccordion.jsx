@@ -1,14 +1,20 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAppContext } from "@/context/context";
-import { fetchWithToken } from "@/helpers/api";
+import { fetchWithToken, postWithToken } from "@/helpers/api";
+import { toast } from "react-hot-toast";
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import ApplicationDetailTabs from "./ApplicationDetailTabs";
 import {
   Calendar,
@@ -45,6 +51,25 @@ function formatDate(dateString) {
 
 export default function ApplicationAccordion({ contactId }) {
   const { accessToken } = useAppContext();
+  const queryClient = useQueryClient();
+
+  const updateStatusMutation = useMutation({
+    mutationFn: async ({ applicationId, status }) => {
+      const fd = new FormData();
+      fd.append("_method", "PUT");
+      fd.append("status", status);
+      return postWithToken(`/applications/${applicationId}/status`, fd, accessToken);
+    },
+    onSuccess: (res, variables) => {
+      if (res?.status === "success") {
+        queryClient.invalidateQueries({ queryKey: [`/contacts/${contactId}/applications`] });
+        toast.success(res.message || `Application status updated to ${variables.status}`);
+      } else {
+        toast.error(res?.message || "Failed to update status");
+      }
+    },
+    onError: () => toast.error("Failed to update status"),
+  });
 
   const { data, isLoading, isError } = useQuery({
     queryKey: [`/contacts/${contactId}/applications`, accessToken],
@@ -73,31 +98,28 @@ export default function ApplicationAccordion({ contactId }) {
       {applications.map((application) => {
         const getStatusIcon = (status) => {
           switch (status?.toLowerCase()) {
-            case "approved":
             case "completed":
               return <CheckCircle className="w-4 h-4 text-green-600" />;
             case "pending":
+              return <Clock className="w-4 h-4 text-yellow-600" />;
             case "in progress":
-              return <Clock className="w-4 h-4 text-blue-600" />;
-            case "rejected":
+              return <TrendingUp className="w-4 h-4 text-blue-600" />;
             case "discontinued":
               return <AlertCircle className="w-4 h-4 text-red-600" />;
             default:
-              return <TrendingUp className="w-4 h-4 text-gray-600" />;
+              return <Clock className="w-4 h-4 text-gray-600" />;
           }
         };
 
         const getStatusColor = (status) => {
           switch (status?.toLowerCase()) {
-            case "approved":
             case "completed":
               return "bg-green-50 text-green-700 border border-green-200";
             case "pending":
               return "bg-yellow-50 text-yellow-700 border border-yellow-200";
             case "in progress":
               return "bg-blue-50 text-blue-700 border border-blue-200";
-            case "rejected":
-            case "cancelled":
+            case "discontinued":
               return "bg-red-50 text-red-700 border border-red-200";
             default:
               return "bg-gray-50 text-gray-700 border border-gray-200";
@@ -117,11 +139,40 @@ export default function ApplicationAccordion({ contactId }) {
                   <h4 className="text-sm font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
                     Application #{application.id}
                   </h4>
-                  <div
-                    className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg font-medium text-xs whitespace-nowrap ${getStatusColor(application.status)}`}
-                  >
-                    {getStatusIcon(application.status)}
-                    {application.status || "Unknown"}
+                  <div onClick={(e) => e.stopPropagation()}>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <button
+                          type="button"
+                          className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg font-medium text-xs whitespace-nowrap transition-colors hover:brightness-95 ${getStatusColor(application.status)}`}
+                        >
+                          {updateStatusMutation.isPending && updateStatusMutation.variables?.applicationId === application.id ? (
+                            <span className="w-4 h-4 animate-spin border-2 border-current border-t-transparent rounded-full" />
+                          ) : (
+                            getStatusIcon(application.status)
+                          )}
+                          {application.status || "Unknown"}
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-44 p-1" align="end">
+                        {['Pending', 'In Progress', 'Completed', 'Discontinued'].map((s) => (
+                          <button
+                            key={s}
+                            type="button"
+                            onClick={() => {
+                              if (application.status !== s) {
+                                updateStatusMutation.mutate({ applicationId: application.id, status: s });
+                              }
+                            }}
+                            disabled={updateStatusMutation.isPending || application.status === s}
+                            className="w-full text-left px-3 py-2 text-sm rounded hover:bg-gray-50 disabled:opacity-50 flex items-center justify-between"
+                          >
+                            {s}
+                            {application.status === s && <CheckCircle className="w-4 h-4 text-emerald-500" />}
+                          </button>
+                        ))}
+                      </PopoverContent>
+                    </Popover>
                   </div>
                 </div>
 
@@ -205,6 +256,7 @@ export default function ApplicationAccordion({ contactId }) {
                 <ApplicationDetailTabs
                   applicationId={application.id}
                   application={application}
+                  contactId={contactId}
                 />
 
                 <ApplicationInformations

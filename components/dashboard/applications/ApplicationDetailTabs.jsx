@@ -5,7 +5,7 @@ import ApplicationCoursesPreview from "./ApplicationCoursesPreview";
 import ApplicationActivityTab from "./ApplicationActivityTab";
 import ApplicationDocumentsTab from "./ApplicationDocumentsTab";
 
-export default function ApplicationDetailTabs({ applicationId, application }) {
+export default function ApplicationDetailTabs({ applicationId, application, contactId }) {
   const [activeTab, setActiveTab] = useState("activity");
 
   return (
@@ -33,9 +33,9 @@ export default function ApplicationDetailTabs({ applicationId, application }) {
       </div>
 
       {activeTab === "activity" ? (
-        <ApplicationActivityTab applicationId={applicationId} />
+        <ApplicationActivityTab applicationId={applicationId} contactId={contactId} />
       ) : (
-        <ApplicationDocumentsTab applicationId={applicationId} />
+        <ApplicationDocumentsTab applicationId={applicationId} contactId={contactId} />
       )}
     </section>
   );

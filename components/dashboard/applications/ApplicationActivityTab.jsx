@@ -47,7 +47,7 @@ function StageIcon({ status, isCurrent }) {
   );
 }
 
-export default function ApplicationActivityTab({ applicationId }) {
+export default function ApplicationActivityTab({ applicationId, contactId }) {
   const { accessToken } = useAppContext();
   const queryClient = useQueryClient();
 
@@ -67,6 +67,7 @@ export default function ApplicationActivityTab({ applicationId }) {
     onSuccess: () => {
       toast.success("Stage updated successfully");
       queryClient.invalidateQueries({ queryKey: [`/applications/${applicationId}/timeline`, accessToken] });
+      queryClient.invalidateQueries({ queryKey: [`/contacts/${contactId}/applications`] });
     },
     onError: (error) => {
       toast.error(error?.message || "Failed to update stage");
@@ -82,6 +83,7 @@ export default function ApplicationActivityTab({ applicationId }) {
     onSuccess: () => {
       toast.success("Application marked as complete");
       queryClient.invalidateQueries({ queryKey: [`/applications/${applicationId}/timeline`, accessToken] });
+      queryClient.invalidateQueries({ queryKey: [`/contacts/${contactId}/applications`] });
     },
     onError: (error) => {
       toast.error(error?.message || "Failed to mark as complete");

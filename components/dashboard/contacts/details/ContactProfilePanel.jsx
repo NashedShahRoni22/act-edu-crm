@@ -171,30 +171,21 @@ export default function ContactProfileHeader({ contactId }) {
     onError: () => toast.error("Failed to update rating"),
   });
 
-  const markAsProspectMutation = useMutation({
-    mutationFn: async () => {
+  const updateStatusMutation = useMutation({
+    mutationFn: async (status) => {
       const fd = new FormData();
       fd.append("_method", "PUT");
-      return postWithToken(`/contacts/${contactId}/mark-as-prospect`, fd, accessToken);
+      fd.append("status", status);
+      return postWithToken(`/contacts/${contactId}/update-status`, fd, accessToken);
     },
-    onSuccess: (res) => {
-      if (res?.status === "success") { invalidate(); toast.success(res.message || "Marked as prospect"); }
-      else toast.error(res?.message || "Failed");
+    onSuccess: (res, status) => {
+      if (res?.status === "success") { 
+        invalidate(); 
+        toast.success(res.message || `Status updated to ${status}`); 
+      }
+      else toast.error(res?.message || "Failed to update status");
     },
-    onError: () => toast.error("Failed to mark as prospect"),
-  });
-
-  const archiveMutation = useMutation({
-    mutationFn: async () => {
-      const fd = new FormData();
-      fd.append("_method", "PUT");
-      return postWithToken(`/contacts/${contactId}/archive`, fd, accessToken);
-    },
-    onSuccess: (res) => {
-      if (res?.status === "success") { invalidate(); toast.success(res.message || "Archived"); }
-      else toast.error(res?.message || "Failed to archive");
-    },
-    onError: () => toast.error("Failed to archive"),
+    onError: () => toast.error("Failed to update status"),
   });
 
   const updateTagsMutation = useMutation({
@@ -377,7 +368,7 @@ export default function ContactProfileHeader({ contactId }) {
             </div>
 
             {/* Action buttons */}
-            <div className="flex items-center gap-1.5 justify-end">
+            <div className="flex flex-wrap items-center gap-2 justify-start sm:justify-end">
               {contact.phone && (
                 <ActionButton
                   href={`sms:${contact.phone}`}
@@ -400,22 +391,34 @@ export default function ContactProfileHeader({ contactId }) {
                 label="Edit"
                 colorClass="border-gray-200 text-gray-600 hover:bg-amber-50 hover:text-amber-600 hover:border-amber-200"
               />
-              <ActionButton
-                onClick={() => markAsProspectMutation.mutate()}
-                disabled={markAsProspectMutation.isPending}
-                loading={markAsProspectMutation.isPending}
-                icon={User}
-                label="Prospect"
-                colorClass="border-gray-200 text-gray-600 hover:bg-purple-50 hover:text-purple-600 hover:border-purple-200"
-              />
-              <ActionButton
-                onClick={() => archiveMutation.mutate()}
-                disabled={archiveMutation.isPending}
-                loading={archiveMutation.isPending}
-                icon={XCircle}
-                label="Archive"
-                colorClass="border-gray-200 text-gray-600 hover:bg-red-50 hover:text-red-600 hover:border-red-200"
-              />
+              <Popover>
+                <PopoverTrigger asChild>
+                  <div>
+                    <ActionButton
+                      loading={updateStatusMutation.isPending}
+                      icon={User}
+                      label={`Status: ${contact.status || 'Unknown'}`}
+                      colorClass="border-gray-200 text-gray-600 hover:bg-gray-50 flex-1 sm:flex-none justify-center"
+                    />
+                  </div>
+                </PopoverTrigger>
+                <PopoverContent className="w-40 p-1" align="end">
+                  {['Lead', 'Prospect', 'Client', 'Archived'].map((s) => (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => {
+                        if (contact.status !== s) updateStatusMutation.mutate(s);
+                      }}
+                      disabled={updateStatusMutation.isPending || contact.status === s}
+                      className="w-full text-left px-3 py-2 text-sm rounded hover:bg-gray-50 disabled:opacity-50 flex items-center justify-between"
+                    >
+                      {s}
+                      {contact.status === s && <CheckCircle className="w-4 h-4 text-emerald-500" />}
+                    </button>
+                  ))}
+                </PopoverContent>
+              </Popover>
             </div>
           </div>
         </div>

@@ -1,14 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { Plus, Search, Download, Eye, Edit2, Loader2, Users, UserCheck, UserX } from "lucide-react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchWithToken, postWithToken } from "@/helpers/api";
 import { useAppContext } from "@/context/context";
 import { toast } from "react-hot-toast";
+import WarningDialog from "@/components/common/WarningDialog";
 import AgentDialog from "../agents/Agentdialog";
 import AgentsSkeleton from "../agents/AgentsSkeleton";
+import Pagination from "../shared/Pagination";
 
 export default function Agents() {
   const { accessToken } = useAppContext();
@@ -16,29 +18,68 @@ export default function Agents() {
 
   const [activeTab, setActiveTab] = useState(1); // 1 = active, 0 = inactive
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
   const [showDialog, setShowDialog] = useState(false);
   const [selectedAgent, setSelectedAgent] = useState(null);
   const [viewMode, setViewMode] = useState(false);
   const [togglingId, setTogglingId] = useState(null);
+  const [loadingAction, setLoadingAction] = useState({ type: null, id: null });
+  const [statusConfirmOpen, setStatusConfirmOpen] = useState(false);
+  const [statusTargetAgent, setStatusTargetAgent] = useState(null);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery.trim());
+      setCurrentPage(1);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  const queryParams = useMemo(() => {
+    const params = new URLSearchParams();
+    params.append("is_active", activeTab.toString());
+    params.append("row", "10");
+    params.append("page", currentPage.toString());
+
+    if (debouncedSearchQuery) {
+      params.append("search", debouncedSearchQuery);
+    }
+
+    return params.toString();
+  }, [activeTab, currentPage, debouncedSearchQuery]);
+
+  const refetchAgentsList = () => {
+    queryClient.invalidateQueries({
+      predicate: (query) => {
+        const key = query.queryKey?.[0];
+        return typeof key === "string" && key.startsWith("/agents?");
+      },
+    });
+  };
 
   // Fetch agents
-  const { data, isLoading } = useQuery({
-    queryKey: ["/agents", activeTab, accessToken],
-    queryFn: () =>
-      fetchWithToken({
-        queryKey: [`/agents?is_active=${activeTab}`, accessToken],
-      }),
+  const { data, isLoading, isFetching, error } = useQuery({
+    queryKey: [`/agents?${queryParams}`, accessToken],
+    queryFn: fetchWithToken,
     enabled: !!accessToken,
+    placeholderData: keepPreviousData,
   });
 
-  const agents = data?.data || [];
-
-  // Filter by search
-  const filteredAgents = agents.filter(
-    (agent) =>
-      agent.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      agent.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      agent.phone?.includes(searchQuery)
+  const agents = useMemo(() => data?.data || [], [data?.data]);
+  const showTableSkeleton = isFetching && !!data;
+  const paginationInfo = useMemo(
+    () => ({
+      currentPage: data?.current_page || 1,
+      lastPage: data?.last_page || 1,
+      total: data?.total || 0,
+      from: data?.from,
+      to: data?.to,
+      hasNextPage: !!data?.next_page_url,
+      hasPrevPage: !!data?.prev_page_url,
+    }),
+    [data]
   );
 
   // Toggle status mutation
@@ -51,21 +92,24 @@ export default function Agents() {
     },
     onSuccess: (res) => {
       setTogglingId(null);
+      setLoadingAction({ type: null, id: null });
       if (res.status === "success") {
         toast.success(res.message || "Status updated successfully");
-        queryClient.invalidateQueries({ queryKey: ["/agents"] });
+        refetchAgentsList();
       } else {
         toast.error(res.message || "Failed to update status");
       }
     },
     onError: () => {
       setTogglingId(null);
+      setLoadingAction({ type: null, id: null });
       toast.error("Failed to update status");
     },
   });
 
   // Handlers
   const handleView = async (agent) => {
+    setLoadingAction({ type: "view", id: agent.id });
     try {
       const res = await fetchWithToken({
         queryKey: [`/agents/${agent.id}`, accessToken],
@@ -77,10 +121,13 @@ export default function Agents() {
       }
     } catch {
       toast.error("Failed to load agent details");
+    } finally {
+      setLoadingAction({ type: null, id: null });
     }
   };
 
   const handleEdit = async (agent) => {
+    setLoadingAction({ type: "edit", id: agent.id });
     try {
       const res = await fetchWithToken({
         queryKey: [`/agents/${agent.id}`, accessToken],
@@ -92,6 +139,8 @@ export default function Agents() {
       }
     } catch {
       toast.error("Failed to load agent details");
+    } finally {
+      setLoadingAction({ type: null, id: null });
     }
   };
 
@@ -102,15 +151,33 @@ export default function Agents() {
   };
 
   const handleToggleStatus = (agent) => {
-    const action = agent.is_active ? "deactivate" : "activate";
-    if (window.confirm(`Are you sure you want to ${action} ${agent.name}?`)) {
-      setTogglingId(agent.id);
-      toggleStatusMutation.mutate({ id: agent.id, is_active: agent.is_active });
-    }
+    setStatusTargetAgent(agent);
+    setStatusConfirmOpen(true);
+  };
+
+  const confirmToggleStatus = () => {
+    if (!statusTargetAgent) return;
+    setStatusConfirmOpen(false);
+    setTogglingId(statusTargetAgent.id);
+    setLoadingAction({ type: "toggle", id: statusTargetAgent.id });
+    toggleStatusMutation.mutate({
+      id: statusTargetAgent.id,
+      is_active: statusTargetAgent.is_active,
+    });
   };
 
   if (isLoading) {
     return <AgentsSkeleton />;
+  }
+
+  if (error) {
+    return (
+      <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+          <p className="text-sm text-red-800">Failed to load agents</p>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -119,6 +186,25 @@ export default function Agents() {
       animate={{ opacity: 1, y: 0 }}
       className="space-y-4"
     >
+      <WarningDialog
+        open={statusConfirmOpen}
+        onOpenChange={(open) => {
+          setStatusConfirmOpen(open);
+          if (!open) setStatusTargetAgent(null);
+        }}
+        title={statusTargetAgent?.is_active ? "Deactivate Agent" : "Activate Agent"}
+        description={
+          statusTargetAgent?.is_active
+            ? "Are you sure you want to deactivate this agent? They will move to the inactive list."
+            : "Are you sure you want to activate this agent? They will move back to the active list."
+        }
+        itemName={statusTargetAgent?.name}
+        onConfirm={confirmToggleStatus}
+        isLoading={toggleStatusMutation.isPending}
+        confirmLabel={statusTargetAgent?.is_active ? "Deactivate" : "Activate"}
+        confirmingLabel={statusTargetAgent?.is_active ? "Deactivating..." : "Activating..."}
+      />
+
       {/* Top Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -144,7 +230,10 @@ export default function Agents() {
           {/* Tabs */}
           <div className="flex gap-2">
             <button
-              onClick={() => setActiveTab(1)}
+              onClick={() => {
+                setActiveTab(1);
+                setCurrentPage(1);
+              }}
               className={`px-6 py-2.5 rounded-lg text-sm font-medium transition-all ${
                 activeTab === 1
                   ? "bg-primary text-white shadow-sm"
@@ -154,7 +243,10 @@ export default function Agents() {
               Active
             </button>
             <button
-              onClick={() => setActiveTab(0)}
+              onClick={() => {
+                setActiveTab(0);
+                setCurrentPage(1);
+              }}
               className={`px-6 py-2.5 rounded-lg text-sm font-medium transition-all ${
                 activeTab === 0
                   ? "bg-primary text-white shadow-sm"
@@ -171,7 +263,7 @@ export default function Agents() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input
                 type="text"
-                placeholder="Search agents..."
+                placeholder="Search name, business, phone, email..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
@@ -226,7 +318,35 @@ export default function Agents() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {filteredAgents.length === 0 ? (
+              {showTableSkeleton ? (
+                Array.from({ length: 6 }).map((_, idx) => (
+                  <tr key={idx} className="hover:bg-gray-50 transition-colors animate-pulse">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-lg bg-gray-200 shrink-0" />
+                        <div className="flex-1 space-y-2">
+                          <div className="h-4 w-24 bg-gray-200 rounded" />
+                          <div className="h-3 w-32 bg-gray-100 rounded" />
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4"><div className="h-4 w-20 bg-gray-200 rounded" /></td>
+                    <td className="px-6 py-4"><div className="h-4 w-20 bg-gray-200 rounded" /></td>
+                    <td className="px-6 py-4"><div className="h-4 w-28 bg-gray-200 rounded" /></td>
+                    <td className="px-6 py-4"><div className="h-4 w-20 bg-gray-200 rounded" /></td>
+                    <td className="px-6 py-4"><div className="h-4 w-24 bg-gray-200 rounded" /></td>
+                    <td className="px-6 py-4"><div className="h-6 w-12 bg-blue-100 rounded-full" /></td>
+                    <td className="px-6 py-4"><div className="h-6 w-12 bg-green-100 rounded-full" /></td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        {Array.from({ length: 3 }).map((__, btnIdx) => (
+                          <div key={btnIdx} className="w-10 h-10 bg-gray-200 rounded-lg" />
+                        ))}
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              ) : agents.length === 0 ? (
                 <tr>
                   <td colSpan="9" className="px-6 py-12 text-center">
                     <div className="flex flex-col items-center gap-2">
@@ -240,7 +360,7 @@ export default function Agents() {
                   </td>
                 </tr>
               ) : (
-                filteredAgents.map((agent, index) => (
+                agents.map((agent, index) => (
                   <motion.tr
                     key={agent.id}
                     initial={{ opacity: 0, y: 10 }}
@@ -251,7 +371,7 @@ export default function Agents() {
                     {/* Name */}
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                        <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                           <Users className="w-5 h-5 text-primary" />
                         </div>
                         <div>
@@ -307,31 +427,41 @@ export default function Agents() {
                           whileHover={{ scale: 1.1 }}
                           whileTap={{ scale: 0.9 }}
                           onClick={() => handleView(agent)}
+                          disabled={loadingAction.type === "view" && loadingAction.id === agent.id}
                           className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
                           title="View Details"
                         >
-                          <Eye className="w-4 h-4" />
+                          {loadingAction.type === "view" && loadingAction.id === agent.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Eye className="w-4 h-4" />
+                          )}
                         </motion.button>
 
                         <motion.button
                           whileHover={{ scale: 1.1 }}
                           whileTap={{ scale: 0.9 }}
                           onClick={() => handleEdit(agent)}
+                          disabled={loadingAction.type === "edit" && loadingAction.id === agent.id}
                           className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                           title="Edit"
                         >
-                          <Edit2 className="w-4 h-4" />
+                          {loadingAction.type === "edit" && loadingAction.id === agent.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Edit2 className="w-4 h-4" />
+                          )}
                         </motion.button>
 
                         <motion.button
                           whileHover={{ scale: 1.1 }}
                           whileTap={{ scale: 0.9 }}
                           onClick={() => handleToggleStatus(agent)}
-                          disabled={togglingId === agent.id}
+                          disabled={loadingAction.type === "toggle" && loadingAction.id === agent.id}
                           className="p-2 text-orange-600 hover:bg-orange-50 rounded-lg transition-colors disabled:opacity-50"
                           title={agent.is_active ? "Deactivate" : "Activate"}
                         >
-                          {togglingId === agent.id ? (
+                          {loadingAction.type === "toggle" && loadingAction.id === agent.id ? (
                             <Loader2 className="w-4 h-4 animate-spin" />
                           ) : agent.is_active ? (
                             <UserX className="w-4 h-4" />
@@ -347,16 +477,9 @@ export default function Agents() {
             </tbody>
           </table>
         </div>
-
-        {filteredAgents.length > 0 && (
-          <div className="px-6 py-3 bg-gray-50 border-t border-gray-200">
-            <p className="text-sm text-gray-600">
-              Showing <span className="font-medium">{filteredAgents.length}</span> of{" "}
-              <span className="font-medium">{agents.length}</span> agents
-            </p>
-          </div>
-        )}
       </div>
+
+      <Pagination {...paginationInfo} onPageChange={setCurrentPage} noun="agents" />
 
       {/* Dialog */}
       <AgentDialog
@@ -367,7 +490,7 @@ export default function Agents() {
         onSuccess={() => {
           setShowDialog(false);
           setSelectedAgent(null);
-          queryClient.invalidateQueries({ queryKey: ["/agents"] });
+          refetchAgentsList();
         }}
       />
     </motion.div>

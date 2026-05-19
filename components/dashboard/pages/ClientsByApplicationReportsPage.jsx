@@ -1,12 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { fetchWithToken } from "@/helpers/api";
 import { useAppContext } from "@/context/context";
 import SectionContainer from "../SectionContainer";
 import { motion } from "framer-motion";
 import ClientsByApplicationReportsSkeleton from "./ClientsByApplicationReportsSkeleton";
+import Pagination from "../shared/Pagination";
 import {
   ChevronUp,
   ChevronDown,
@@ -15,8 +16,6 @@ import {
   User,
   FileText,
   Badge as BadgeIcon,
-  ChevronLeft,
-  ChevronRight,
 } from "lucide-react";
 
 const CONTACT_SOURCE_COLORS = {
@@ -41,10 +40,11 @@ export default function ClientsByApplicationReportsPage() {
   const [sortConfig, setSortConfig] = useState({ key: "id", direction: "desc" });
   const [currentPage, setCurrentPage] = useState(1);
 
-  const { data: reportsData, isLoading } = useQuery({
+  const { data: reportsData, isLoading, isFetching } = useQuery({
     queryKey: ["/reports/clients-by-application?page=" + currentPage, accessToken],
     queryFn: fetchWithToken,
     enabled: !!accessToken,
+    placeholderData: keepPreviousData,
   });
 
   const paginationData = reportsData?.data || {};
@@ -52,6 +52,15 @@ export default function ClientsByApplicationReportsPage() {
   const totalPages = paginationData?.last_page || 1;
   const perPage = paginationData?.per_page || 50;
   const total = paginationData?.total || 0;
+  const paginationInfo = {
+    currentPage: paginationData?.current_page || 1,
+    lastPage: totalPages,
+    total,
+    from: paginationData?.from,
+    to: paginationData?.to,
+    hasNextPage: !!paginationData?.next_page_url,
+    hasPrevPage: !!paginationData?.prev_page_url,
+  };
 
   const handleSort = (key) => {
     setSortConfig({
@@ -314,49 +323,14 @@ export default function ClientsByApplicationReportsPage() {
           </table>
         </div>
 
-        {/* Pagination */}
-        <div className="border-t border-gray-200 px-6 py-4 flex items-center justify-between bg-gray-50">
-          <div className="text-sm text-gray-600">
-            Showing <span className="font-semibold">{clients.length}</span> of{" "}
-            <span className="font-semibold">{total}</span> records
+        {isFetching && !isLoading && (
+          <div className="border-t border-gray-200 px-6 py-2 bg-gray-50 text-right text-xs text-gray-500">
+            Updating...
           </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-              disabled={currentPage === 1}
-              className="flex items-center gap-1 px-3 py-2 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              <ChevronLeft className="w-4 h-4" />
-              Previous
-            </button>
-
-            <div className="flex items-center gap-1">
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                <button
-                  key={page}
-                  onClick={() => setCurrentPage(page)}
-                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    currentPage === page
-                      ? "bg-blue-500 text-white"
-                      : "border border-gray-200 text-gray-700 hover:bg-gray-100"
-                  }`}
-                >
-                  {page}
-                </button>
-              ))}
-            </div>
-
-            <button
-              onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-              disabled={currentPage === totalPages}
-              className="flex items-center gap-1 px-3 py-2 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              Next
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
+        )}
       </motion.div>
+
+      <Pagination {...paginationInfo} onPageChange={setCurrentPage} noun="records" />
     </SectionContainer>
   );
 }

@@ -2,13 +2,17 @@
 
 import { useAppContext } from "@/context/context";
 import { fetchWithToken, postWithToken } from "@/helpers/api";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import {
+  keepPreviousData,
+  useQuery,
+  useMutation,
+  useQueryClient,
+} from "@tanstack/react-query";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import {
   Plus,
   Edit2,
-  User,
   Mail,
   Phone,
   Briefcase,
@@ -16,12 +20,16 @@ import {
   Shield,
   Search,
   Eye,
-  UserCircle,
+  Loader2,
+  UserCheck,
+  UserX,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
+import WarningDialog from "@/components/common/WarningDialog";
 import UsersSkeleton from "../team/users/UsersSkeleton";
 import UserFormDialog from "../team/users/UserFormDialog";
 import UserViewDialog from "../team/users/UserViewDialog";
+import Pagination from "../shared/Pagination";
 
 const emptyForm = {
   first_name: "",
@@ -45,15 +53,88 @@ export default function Users() {
   const [showViewDialog, setShowViewDialog] = useState(false);
   const [formData, setFormData] = useState(emptyForm);
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("active");
+  const [roleFilter, setRoleFilter] = useState("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [statusConfirmOpen, setStatusConfirmOpen] = useState(false);
+  const [statusTargetUser, setStatusTargetUser] = useState(null);
+  const [statusLoadingId, setStatusLoadingId] = useState(null);
 
-  // Fetch users list
-  const { data, isLoading, error } = useQuery({
-    queryKey: ["/users", accessToken],
-    queryFn: fetchWithToken,
-    enabled: !!accessToken,
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery.trim());
+      setCurrentPage(1);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  const queryParams = useMemo(() => {
+    const params = new URLSearchParams();
+
+    if (statusFilter && statusFilter !== "all") {
+      params.append("status", statusFilter);
+    }
+    if (roleFilter && roleFilter !== "all") {
+      params.append("role", roleFilter);
+    }
+    if (debouncedSearchQuery) {
+      params.append("search", debouncedSearchQuery);
+    }
+
+    params.append("row", "10");
+    params.append("page", currentPage.toString());
+
+    return params.toString();
+  }, [statusFilter, roleFilter, debouncedSearchQuery, currentPage]);
+
+  const refetchUsersList = () => {
+    queryClient.invalidateQueries({
+      predicate: (query) => {
+        const key = query.queryKey?.[0];
+        return typeof key === "string" && key.startsWith("/users?");
+      },
+    });
+  };
+
+  const statusMutation = useMutation({
+    mutationFn: async ({ id, status }) => {
+      const fd = new FormData();
+      fd.append("_method", "PUT");
+      fd.append("status", status);
+      return postWithToken(`/users/${id}/update-status`, fd, accessToken);
+    },
+    onSuccess: (res) => {
+      setStatusLoadingId(null);
+      if (res.status === "success") {
+        toast.success(res.message || "User status updated successfully");
+        refetchUsersList();
+      } else {
+        toast.error(res.message || "Failed to update user status");
+      }
+    },
+    onError: () => {
+      setStatusLoadingId(null);
+      toast.error("Failed to update user status");
+    },
   });
 
-  const users = data?.data || [];
+  // Fetch users list
+  const {
+    data: usersData,
+    isLoading,
+    isFetching,
+    error,
+  } = useQuery({
+    queryKey: [`/users?${queryParams}`, accessToken],
+    queryFn: fetchWithToken,
+    enabled: !!accessToken,
+    placeholderData: keepPreviousData,
+  });
+
+  const users = useMemo(() => usersData?.data || [], [usersData?.data]);
+  const showTableSkeleton = isFetching && !!usersData;
 
   // Fetch offices for dropdown
   const { data: officesData } = useQuery({
@@ -70,16 +151,28 @@ export default function Users() {
     enabled: !!accessToken,
   });
 
-  const roles = rolesData?.data || [];
+  const roles = useMemo(() => rolesData?.data || [], [rolesData?.data]);
+  const roleOptions = useMemo(() => {
+    const roleNames = roles
+      .map((role) => role?.name || role?.role || "")
+      .filter(Boolean);
+    return Array.from(new Set(roleNames));
+  }, [roles]);
 
-  // Filter users based on search
-  const filteredUsers = users.filter(
-    (user) =>
-      user.first_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.last_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.role?.toLowerCase().includes(searchQuery.toLowerCase())
+  const paginationInfo = useMemo(
+    () => ({
+      currentPage: usersData?.current_page || 1,
+      lastPage: usersData?.last_page || 1,
+      total: usersData?.total || 0,
+      from: usersData?.from,
+      to: usersData?.to,
+      hasNextPage: !!usersData?.next_page_url,
+      hasPrevPage: !!usersData?.prev_page_url,
+    }),
+    [usersData]
   );
+
+  const statusMeta = usersData?.meta || {};
 
   // Create mutation
   const createMutation = useMutation({
@@ -88,7 +181,7 @@ export default function Users() {
       if (res.status === "success") {
         toast.success(res.message || "User created successfully");
         handleCloseDialog();
-        queryClient.invalidateQueries({ queryKey: ["/users"] });
+        refetchUsersList();
       } else {
         toast.error(res.message || "Failed to create user");
       }
@@ -104,7 +197,7 @@ export default function Users() {
       if (res.status === "success") {
         toast.success(res.message || "User updated successfully");
         handleCloseDialog();
-        queryClient.invalidateQueries({ queryKey: ["/users"] });
+        refetchUsersList();
       } else {
         toast.error(res.message || "Failed to update user");
       }
@@ -138,6 +231,20 @@ export default function Users() {
   const handleView = (user) => {
     setViewingUser(user);
     setShowViewDialog(true);
+  };
+
+  const handleToggleStatus = (user) => {
+    setStatusTargetUser(user);
+    setStatusConfirmOpen(true);
+  };
+
+  const confirmToggleStatus = () => {
+    if (!statusTargetUser) return;
+
+    const nextStatus = statusTargetUser.status === "active" ? "inactive" : "active";
+    setStatusConfirmOpen(false);
+    setStatusLoadingId(statusTargetUser.id);
+    statusMutation.mutate({ id: statusTargetUser.id, status: nextStatus });
   };
 
   // Handle close dialog
@@ -230,6 +337,35 @@ export default function Users() {
       animate={{ opacity: 1, y: 0 }}
       className="space-y-4"
     >
+      <WarningDialog
+        open={statusConfirmOpen}
+        onOpenChange={(open) => {
+          setStatusConfirmOpen(open);
+          if (!open) setStatusTargetUser(null);
+        }}
+        title={
+          statusTargetUser?.status === "active"
+            ? "Deactivate User"
+            : "Activate User"
+        }
+        description={
+          statusTargetUser?.status === "active"
+            ? "Are you sure you want to deactivate this user? They will move to the inactive list."
+            : "Are you sure you want to activate this user? They will move back to the active list."
+        }
+        itemName={statusTargetUser?.first_name ? `${statusTargetUser.first_name} ${statusTargetUser.last_name || ""}`.trim() : ""}
+        onConfirm={confirmToggleStatus}
+        isLoading={statusMutation.isPending}
+        confirmLabel={
+          statusTargetUser?.status === "active" ? "Deactivate" : "Activate"
+        }
+        confirmingLabel={
+          statusTargetUser?.status === "active"
+            ? "Deactivating..."
+            : "Activating..."
+        }
+      />
+
       {/* Top Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -250,38 +386,71 @@ export default function Users() {
       </div>
 
       {/* Search Bar */}
-      {users.length > 0 && (
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <div className="relative max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search users by name, email, or role..."
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
-            />
+      <div className="bg-white rounded-lg border border-gray-200 p-4">
+        <div className="flex flex-col md:flex-row md:items-center gap-3">
+          <div className="flex gap-2">
+            <button
+              onClick={() => {
+                setStatusFilter("active");
+                setCurrentPage(1);
+              }}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                statusFilter === "active"
+                  ? "bg-primary text-white"
+                  : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
+              }`}
+            >
+              Active
+            </button>
+            <button
+              onClick={() => {
+                setStatusFilter("inactive");
+                setCurrentPage(1);
+              }}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                statusFilter === "inactive"
+                  ? "bg-primary text-white"
+                  : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
+              }`}
+            >
+              Inactive
+            </button>
+          </div>
+
+          <div className="flex flex-1 flex-wrap md:flex-nowrap gap-3 md:justify-end">
+            <select
+              value={roleFilter}
+              onChange={(e) => {
+                setRoleFilter(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
+            >
+              <option value="all">All Roles</option>
+              {roleOptions.map((roleName) => (
+                <option key={roleName} value={roleName}>
+                  {roleName}
+                </option>
+              ))}
+            </select>
+
+            <div className="relative w-full md:w-72">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search users..."
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
+              />
+            </div>
+
           </div>
         </div>
-      )}
+      </div>
 
       {/* Table */}
-      {users.length === 0 ? (
-        <div className="bg-white rounded-lg border border-gray-200 p-12 flex flex-col items-center gap-3">
-          <UserCircle className="w-12 h-12 text-gray-300" />
-          <p className="text-sm text-gray-500">No users added yet</p>
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={handleAdd}
-            className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary-deep transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            Add Your First User
-          </motion.button>
-        </div>
-      ) : (
-        <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
           {/* Table Container */}
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -308,16 +477,40 @@ export default function Users() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {filteredUsers.length === 0 ? (
+                {showTableSkeleton ? (
+                  Array.from({ length: 10 }).map((_, idx) => (
+                    <tr key={idx} className="animate-pulse">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-gray-200 shrink-0" />
+                          <div className="space-y-2">
+                            <div className="h-4 w-32 bg-gray-200 rounded" />
+                            <div className="h-3 w-20 bg-gray-100 rounded" />
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4"><div className="h-4 w-36 bg-gray-200 rounded" /></td>
+                      <td className="px-6 py-4"><div className="h-4 w-24 bg-gray-200 rounded" /></td>
+                      <td className="px-6 py-4"><div className="h-4 w-28 bg-gray-200 rounded" /></td>
+                      <td className="px-6 py-4"><div className="h-6 w-20 bg-gray-200 rounded-full" /></td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex justify-end gap-2">
+                          <div className="w-8 h-8 bg-gray-200 rounded-lg" />
+                          <div className="w-8 h-8 bg-gray-200 rounded-lg" />
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                ) : users.length === 0 ? (
                   <tr>
                     <td colSpan="6" className="px-6 py-12 text-center">
                       <p className="text-sm text-gray-500">
-                        No users found matching &quot;{searchQuery}&quot;
+                        No users found matching current filters.
                       </p>
                     </td>
                   </tr>
                 ) : (
-                  filteredUsers.map((user, index) => (
+                  users.map((user, index) => (
                     <motion.tr
                       key={user.id}
                       initial={{ opacity: 0, y: 10 }}
@@ -412,6 +605,26 @@ export default function Users() {
                           >
                             <Edit2 className="w-4 h-4" />
                           </motion.button>
+                          <motion.button
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.9 }}
+                            onClick={() => handleToggleStatus(user)}
+                            disabled={statusLoadingId === user.id}
+                            className="p-2 text-orange-600 hover:bg-orange-50 rounded-lg transition-colors disabled:opacity-50"
+                            title={
+                              user.status === "active"
+                                ? "Deactivate"
+                                : "Activate"
+                            }
+                          >
+                            {statusLoadingId === user.id ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : user.status === "active" ? (
+                              <UserX className="w-4 h-4" />
+                            ) : (
+                              <UserCheck className="w-4 h-4" />
+                            )}
+                          </motion.button>
                         </div>
                       </td>
                     </motion.tr>
@@ -420,18 +633,9 @@ export default function Users() {
               </tbody>
             </table>
           </div>
+      </div>
 
-          {/* Table Footer */}
-          {filteredUsers.length > 0 && (
-            <div className="px-6 py-3 bg-gray-50 border-t border-gray-200">
-              <p className="text-sm text-gray-600">
-                Showing <span className="font-medium">{filteredUsers.length}</span> of{" "}
-                <span className="font-medium">{users.length}</span> users
-              </p>
-            </div>
-          )}
-        </div>
-      )}
+      <Pagination {...paginationInfo} onPageChange={setCurrentPage} noun="users" />
 
       <UserFormDialog
         open={showDialog}

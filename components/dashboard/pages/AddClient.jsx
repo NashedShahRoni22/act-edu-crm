@@ -14,7 +14,6 @@ import {
   Users,
   Briefcase,
   Plus,
-  Trash2,
   Loader2,
   Check,
   ChevronDown,

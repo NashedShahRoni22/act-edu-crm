@@ -100,7 +100,7 @@ function SectionBlock({ title, badge, onEdit, children }) {
     <div className="py-3 border-b border-gray-100 last:border-0">
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
-          <h4 className="text-sm font-semibold text-gray-800">{title}</h4>
+          <h4 className="text-xs font-semibold uppercase tracking-wide text-gray-500">{title}</h4>
           {badge && (
             <span
               className="text-[10px] font-bold px-1.5 py-0.5 rounded text-white"

@@ -5,7 +5,7 @@ import { fetchWithToken, postWithToken } from "@/helpers/api";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { Loader2, Check, X, Building2, BookOpen, Plus } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { toast } from "react-hot-toast";
 import {
   Dialog,
@@ -57,7 +57,6 @@ export default function ProductFormDialog({
 }) {
   const { accessToken } = useAppContext();
   const [formData, setFormData] = useState(emptyForm);
-  const [availableBranches, setAvailableBranches] = useState([]);
 
   // Fetch partners
   const { data: partnersData, isLoading: loadingPartners } = useQuery({
@@ -66,19 +65,13 @@ export default function ProductFormDialog({
     enabled: !!accessToken && open,
   });
 
-  const partners = partnersData?.data || [];
-  // Update available branches when partner is selected
-  useEffect(() => {
+  const partners = useMemo(() => partnersData?.data || [], [partnersData?.data]);
+
+  const availableBranches = useMemo(() => {
     if (formData.partner_id) {
-      setAvailableBranches(
-        partners.find((p) => p.id === parseInt(formData.partner_id))
-          ?.branches || [],
-      );
-    } else {
-      setAvailableBranches([]);
+      return partners.find((p) => p.id === parseInt(formData.partner_id))?.branches || [];
     }
-    // Reset selected branches whenever partner changes
-    setFormData((prev) => ({ ...prev, branches: [] }));
+    return [];
   }, [formData.partner_id, partners]);
 
   // Load product data when editing
@@ -266,7 +259,7 @@ export default function ProductFormDialog({
                   <select
                     value={formData.partner_id}
                     onChange={(e) =>
-                      setFormData((p) => ({ ...p, partner_id: e.target.value }))
+                      setFormData((p) => ({ ...p, partner_id: e.target.value, branches: [] }))
                     }
                     className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#3B4CB8]/50 focus:border-[#3B4CB8]"
                     required

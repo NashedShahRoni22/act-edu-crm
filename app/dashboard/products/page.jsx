@@ -1,4 +1,4 @@
-import ProductsPage from "@/components/dashboard/pages/Productspage ";
+import ProductsPage from "@/components/dashboard/pages/ProductsPage";
 
 export const metadata = {
   title: "Products | ACT Education CRM",
