@@ -5,6 +5,41 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchWithToken, postWithToken } from "@/helpers/api";
 import { toast } from "react-hot-toast";
 
+export const COUNTRY_OPTIONS = [
+  "Bangladesh",
+  "India",
+  "Nepal",
+  "Pakistan",
+  "Sri Lanka",
+  "Bhutan",
+  "Maldives",
+  "Afghanistan",
+  "China",
+  "Japan",
+  "South Korea",
+  "Malaysia",
+  "Singapore",
+  "Thailand",
+  "Vietnam",
+  "Indonesia",
+  "United Arab Emirates",
+  "Saudi Arabia",
+  "Qatar",
+  "Oman",
+  "Kuwait",
+  "United Kingdom",
+  "United States",
+  "Canada",
+  "Australia",
+  "New Zealand",
+  "Germany",
+  "France",
+  "Italy",
+  "Spain",
+  "Turkey",
+  "Other",
+];
+
 // Create Context
 const AppContext = createContext();
 

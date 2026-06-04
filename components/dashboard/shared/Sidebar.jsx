@@ -78,7 +78,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
     enabled: !!accessToken,
   });
   const permissions = data?.data || [];
-  console.log(permissions);
+  // console.log(permissions);
 
   const [activeSectionKey, setActiveSectionKey] = useState(
     () => getActiveSectionKey(pathname)

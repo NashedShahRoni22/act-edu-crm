@@ -12,13 +12,19 @@ import {
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { useAppContext } from "@/context/context";
+import { useQuery } from "@tanstack/react-query";
+import { fetchWithToken } from "@/helpers/api";
 import Link from "next/link";
 import NotificationCenter from "./NotificationCenter";
 
 export default function Topbar({ toggleSidebar }) {
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const { userInfo, logout } = useAppContext();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [showSearchResults, setShowSearchResults] = useState(false);
+  const { userInfo, logout, accessToken } = useAppContext();
   const menuRef = useRef(null);
+  const searchRef = useRef(null);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -26,10 +32,38 @@ export default function Topbar({ toggleSidebar }) {
       if (menuRef.current && !menuRef.current.contains(e.target)) {
         setShowUserMenu(false);
       }
+      if (searchRef.current && !searchRef.current.contains(e.target)) {
+        setShowSearchResults(false);
+      }
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+    }, 450);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  const searchParams = new URLSearchParams();
+  if (debouncedSearch.trim()) {
+    searchParams.set("search", debouncedSearch.trim());
+    searchParams.set("page", "1");
+    searchParams.set("rows", "10");
+  }
+
+  const { data: searchData, isLoading: isSearching } = useQuery({
+    queryKey: [`/contacts?${searchParams.toString()}`, accessToken],
+    queryFn: fetchWithToken,
+    enabled: !!accessToken && debouncedSearch.trim().length > 0,
+  });
+
+  const searchResults = Array.isArray(searchData)
+    ? searchData
+    : searchData?.data ?? [];
 
   const initials = userInfo?.name
     ? userInfo.name.slice(0, 2).toUpperCase()
@@ -45,14 +79,14 @@ export default function Topbar({ toggleSidebar }) {
         {/* Mobile hamburger */}
         <button
           onClick={toggleSidebar}
-          className="lg:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
+          className="lg:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors shrink-0"
           aria-label="Open sidebar"
         >
           <Menu className="w-5 h-5 text-gray-600" />
         </button>
 
         {/* Add Client */}
-        <Link href="/dashboard/add-client" className="flex-shrink-0">
+        <Link href="/dashboard/add-client" className="shrink-0">
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
@@ -65,19 +99,83 @@ export default function Topbar({ toggleSidebar }) {
 
         {/* Search */}
         <div className="hidden md:flex items-center flex-1 max-w-sm">
-          <div className="relative w-full">
+          <div className="relative w-full" ref={searchRef}>
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
             <input
               type="text"
-              placeholder="Search contacts…"
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setShowSearchResults(true);
+              }}
+              onFocus={() => setShowSearchResults(true)}
+              placeholder="Search contacts by name or email…"
               className="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 transition-all"
             />
+
+            <AnimatePresence>
+              {showSearchResults && debouncedSearch.trim().length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: -6, scale: 0.98 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -6, scale: 0.98 }}
+                  transition={{ duration: 0.15 }}
+                  className="absolute left-0 right-0 mt-2 bg-white border border-gray-100 rounded-xl shadow-xl overflow-hidden z-50"
+                >
+                  <div className="px-4 py-2 border-b border-gray-100 text-xs text-gray-500 flex items-center justify-between">
+                    <span>Contacts</span>
+                    {isSearching ? <span>Searching...</span> : null}
+                  </div>
+
+                  <div className="max-h-80 overflow-y-auto">
+                    {isSearching ? (
+                      <div className="px-4 py-6 text-sm text-gray-500">
+                        Searching contacts...
+                      </div>
+                    ) : searchResults.length > 0 ? (
+                      searchResults.map((contact) => {
+                        const name = [contact.first_name, contact.last_name]
+                          .filter(Boolean)
+                          .join(" ")
+                          .trim() || "Unnamed contact";
+
+                        return (
+                          <Link
+                            key={contact.id}
+                            href={`/dashboard/contacts/${contact.id}`}
+                            onClick={() => {
+                              setSearchQuery("");
+                              setDebouncedSearch("");
+                              setShowSearchResults(false);
+                            }}
+                            className="flex items-start justify-between gap-3 px-4 py-3 hover:bg-gray-50 transition-colors border-t border-gray-50 first:border-t-0"
+                          >
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium text-gray-900 truncate">
+                                {name}
+                              </p>
+                              <p className="text-xs text-gray-500 truncate mt-0.5">
+                                {contact.email || "No email available"}
+                              </p>
+                            </div>
+                          </Link>
+                        );
+                      })
+                    ) : (
+                      <div className="px-4 py-6 text-sm text-gray-500">
+                        No contacts found.
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </div>
       </div>
 
       {/* ── Right ──────────────────────────────────────────────────── */}
-      <div className="flex items-center gap-1.5 flex-shrink-0">
+      <div className="flex items-center gap-1.5 shrink-0">
 
         {/* Office Check-in CTA */}
         <Link href="/dashboard/office-checkin" className="hidden sm:block">
@@ -131,7 +229,7 @@ export default function Topbar({ toggleSidebar }) {
             onClick={() => setShowUserMenu((v) => !v)}
             className="flex items-center gap-2 p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
           >
-            <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-violet-500 rounded-full flex items-center justify-center text-white font-semibold text-xs flex-shrink-0">
+            <div className="w-8 h-8 bg-linear-to-br from-indigo-500 to-violet-500 rounded-full flex items-center justify-center text-white font-semibold text-xs shrink-0">
               {initials}
             </div>
             <ChevronDown
@@ -154,7 +252,7 @@ export default function Topbar({ toggleSidebar }) {
                 {/* User info */}
                 <div className="px-4 py-3 border-b border-gray-100">
                   <div className="flex items-center gap-2.5">
-                    <div className="w-9 h-9 bg-gradient-to-br from-indigo-500 to-violet-500 rounded-full flex items-center justify-center text-white font-semibold text-xs flex-shrink-0">
+                    <div className="w-9 h-9 bg-linear-to-br from-indigo-500 to-violet-500 rounded-full flex items-center justify-center text-white font-semibold text-xs shrink-0">
                       {initials}
                     </div>
                     <div className="min-w-0">

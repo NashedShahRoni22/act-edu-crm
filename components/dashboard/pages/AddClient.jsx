@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
-import { useAppContext } from "@/context/context";
+import { COUNTRY_OPTIONS, useAppContext } from "@/context/context";
 import { fetchWithToken, postWithToken } from "@/helpers/api";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
@@ -46,19 +46,35 @@ const SOURCES = [
   "Other",
 ];
 
+const GENDER_OPTIONS = ["male", "female", "other"];
+
+const buildEmptyFormData = () => ({
+  first_name: "",
+  last_name: "",
+  email: "",
+  secondary_email: "",
+  phone: "",
+  dob: "",
+  gender: "",
+  street: "",
+  city: "",
+  state: "",
+  postal_code: "",
+  country: "",
+  preferred_intake: "",
+  degree_levels: [],
+  assignee_id: "",
+  source: "",
+  tag_ids: [],
+});
+
 export default function AddClient() {
   const { accessToken } = useAppContext();
   const queryClient = useQueryClient();
   const router = useRouter();
 
   const [formData, setFormData] = useState({
-    first_name: "",
-    last_name: "",
-    email: "",
-    phone: "",
-    assignee_id: "",
-    source: "",
-    tag_ids: [],
+    ...buildEmptyFormData(),
   });
   const [tagsOpen, setTagsOpen] = useState(false);
 
@@ -82,6 +98,14 @@ export default function AddClient() {
 
   const tags = tagsData?.data || [];
 
+  const { data: degreeLevelsData } = useQuery({
+    queryKey: ["/degree-levels", accessToken],
+    queryFn: fetchWithToken,
+    enabled: !!accessToken,
+  });
+
+  const degreeLevels = degreeLevelsData?.data || [];
+
   // Fetch services (products with branches and workflows)
   const { data: servicesData, isLoading: loadingServices } = useQuery({
     queryKey: ["/services", accessToken],
@@ -98,15 +122,7 @@ export default function AddClient() {
       if (res.status === "success") {
         toast.success(res.message || "Contact created successfully");
         // Reset form
-        setFormData({
-          first_name: "",
-          last_name: "",
-          email: "",
-          phone: "",
-          assignee_id: "",
-          source: "",
-          tag_ids: [],
-        });
+        setFormData(buildEmptyFormData());
         setTagsOpen(false);
         setApplications([{ ...emptyApplication }]);
         queryClient.invalidateQueries({ queryKey: ["/contacts"] });
@@ -156,6 +172,19 @@ export default function AddClient() {
     });
   };
 
+  const toggleDegreeLevel = (degreeLevelId) => {
+    setFormData((prev) => {
+      const normalizedId = Number(degreeLevelId);
+      const exists = prev.degree_levels.includes(normalizedId);
+      return {
+        ...prev,
+        degree_levels: exists
+          ? prev.degree_levels.filter((id) => id !== normalizedId)
+          : [...prev.degree_levels, normalizedId],
+      };
+    });
+  };
+
   // Handle form submit
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -175,6 +204,14 @@ export default function AddClient() {
     }
     if (!formData.phone.trim()) {
       toast.error("Phone is required");
+      return;
+    }
+    if (!formData.dob) {
+      toast.error("Date of birth is required");
+      return;
+    }
+    if (!formData.gender) {
+      toast.error("Gender is required");
       return;
     }
     if (!formData.assignee_id) {
@@ -208,12 +245,24 @@ export default function AddClient() {
     fd.append("first_name", formData.first_name.trim());
     fd.append("last_name", formData.last_name.trim());
     fd.append("email", formData.email.trim());
+    fd.append("secondary_email", formData.secondary_email.trim());
     fd.append("phone", formData.phone.trim());
+    fd.append("dob", formData.dob);
+    fd.append("gender", formData.gender);
+    fd.append("street", formData.street.trim());
+    fd.append("city", formData.city.trim());
+    fd.append("state", formData.state.trim());
+    fd.append("postal_code", formData.postal_code.trim());
+    fd.append("country", formData.country);
     fd.append("assignee_id", formData.assignee_id);
     fd.append("source", formData.source);
 
     formData.tag_ids.forEach((tagId, index) => {
       fd.append(`tag_ids[${index}]`, String(tagId));
+    });
+
+    formData.degree_levels.forEach((degreeLevelId, index) => {
+      fd.append(`degree_levels[${index}]`, String(degreeLevelId));
     });
 
     applications.forEach((app, index) => {
@@ -311,6 +360,24 @@ export default function AddClient() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
+                Secondary Email
+              </label>
+              <div className="relative">
+                <Mail className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="email"
+                  value={formData.secondary_email}
+                  onChange={(e) =>
+                    setFormData((p) => ({ ...p, secondary_email: e.target.value }))
+                  }
+                  placeholder="secondary@example.com"
+                  className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#3B4CB8]/50 focus:border-[#3B4CB8]"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 Phone <span className="text-red-500">*</span>
               </label>
               <div className="relative">
@@ -326,6 +393,230 @@ export default function AddClient() {
                   required
                 />
               </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Date of Birth <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="date"
+                value={formData.dob}
+                onChange={(e) =>
+                  setFormData((p) => ({ ...p, dob: e.target.value }))
+                }
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#3B4CB8]/50 focus:border-[#3B4CB8]"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Gender <span className="text-red-500">*</span>
+              </label>
+              <div className="relative">
+                <select
+                  value={formData.gender}
+                  onChange={(e) =>
+                    setFormData((p) => ({ ...p, gender: e.target.value }))
+                  }
+                  className="w-full px-4 pr-10 py-2.5 border border-gray-300 rounded-lg text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-[#3B4CB8]/50 focus:border-[#3B4CB8]"
+                  required
+                >
+                  <option value="">Select Gender</option>
+                  {GENDER_OPTIONS.map((gender) => (
+                    <option key={gender} value={gender}>
+                      {gender.charAt(0).toUpperCase() + gender.slice(1)}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="w-4 h-4 text-gray-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              </div>
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Street
+              </label>
+              <input
+                type="text"
+                value={formData.street}
+                onChange={(e) =>
+                  setFormData((p) => ({ ...p, street: e.target.value }))
+                }
+                placeholder="Allen Road"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#3B4CB8]/50 focus:border-[#3B4CB8]"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                City
+              </label>
+              <input
+                type="text"
+                value={formData.city}
+                onChange={(e) =>
+                  setFormData((p) => ({ ...p, city: e.target.value }))
+                }
+                placeholder="Sydney"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#3B4CB8]/50 focus:border-[#3B4CB8]"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                State
+              </label>
+              <input
+                type="text"
+                value={formData.state}
+                onChange={(e) =>
+                  setFormData((p) => ({ ...p, state: e.target.value }))
+                }
+                placeholder="Sydney"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#3B4CB8]/50 focus:border-[#3B4CB8]"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Postal Code
+              </label>
+              <input
+                type="text"
+                value={formData.postal_code}
+                onChange={(e) =>
+                  setFormData((p) => ({ ...p, postal_code: e.target.value }))
+                }
+                placeholder="2005"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#3B4CB8]/50 focus:border-[#3B4CB8]"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Country
+              </label>
+              <div className="relative">
+                <select
+                  value={formData.country}
+                  onChange={(e) =>
+                    setFormData((p) => ({ ...p, country: e.target.value }))
+                  }
+                  className="w-full px-4 pr-10 py-2.5 border border-gray-300 rounded-lg text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-[#3B4CB8]/50 focus:border-[#3B4CB8]"
+                >
+                  <option value="">Select Country</option>
+                  {COUNTRY_OPTIONS.map((country) => (
+                    <option key={country} value={country}>
+                      {country}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="w-4 h-4 text-gray-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              </div>
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Preferred Intake
+              </label>
+              <input
+                type="text"
+                value={formData.preferred_intake}
+                onChange={(e) =>
+                  setFormData((p) => ({ ...p, preferred_intake: e.target.value }))
+                }
+                placeholder="e.g. July 2026"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#3B4CB8]/50 focus:border-[#3B4CB8]"
+              />
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Degree Levels
+              </label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button
+                    type="button"
+                    className={cn(
+                      "w-full min-h-10.5 px-3 py-2 border border-gray-300 rounded-lg text-sm text-left flex flex-wrap gap-1.5 items-center bg-white focus:outline-none focus:ring-2 focus:ring-[#3B4CB8]/50 focus:border-[#3B4CB8] transition-all",
+                      formData.degree_levels.length === 0 && "text-gray-400"
+                    )}
+                  >
+                    {formData.degree_levels.length === 0 ? (
+                      <span className="flex-1">Select degree levels...</span>
+                    ) : (
+                      degreeLevels
+                        .filter((degreeLevel) =>
+                          formData.degree_levels.includes(Number(degreeLevel.id))
+                        )
+                        .map((degreeLevel) => (
+                          <Badge
+                            key={degreeLevel.id}
+                            variant="secondary"
+                            className="flex items-center gap-1 pr-1 text-xs"
+                          >
+                            {degreeLevel.name}
+                            <span
+                              role="button"
+                              tabIndex={0}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleDegreeLevel(degreeLevel.id);
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter" || e.key === " ") {
+                                  e.stopPropagation();
+                                  toggleDegreeLevel(degreeLevel.id);
+                                }
+                              }}
+                              className="ml-0.5 hover:text-red-500 cursor-pointer"
+                            >
+                              <X className="w-3 h-3" />
+                            </span>
+                          </Badge>
+                        ))
+                    )}
+                    <ChevronDown className="w-4 h-4 text-gray-400 ml-auto shrink-0" />
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-full p-0" align="start">
+                  <div className="max-h-56 overflow-y-auto">
+                    {degreeLevels.length === 0 ? (
+                      <p className="text-sm text-gray-500 text-center py-4">No degree levels found</p>
+                    ) : (
+                      degreeLevels.map((degreeLevel) => {
+                        const isSelected = formData.degree_levels.includes(Number(degreeLevel.id));
+                        return (
+                          <button
+                            key={degreeLevel.id}
+                            type="button"
+                            onClick={() => toggleDegreeLevel(degreeLevel.id)}
+                            className={cn(
+                              "w-full flex items-center gap-3 px-3 py-2.5 text-sm hover:bg-gray-50 transition-colors text-left",
+                              isSelected && "bg-[#3B4CB8]/5"
+                            )}
+                          >
+                            <div
+                              className={cn(
+                                "w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors",
+                                isSelected ? "bg-[#3B4CB8] border-[#3B4CB8]" : "border-gray-300"
+                              )}
+                            >
+                              {isSelected && <Check className="w-3 h-3 text-white" />}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-gray-900 truncate">{degreeLevel.name}</p>
+                            </div>
+                          </button>
+                        );
+                      })
+                    )}
+                  </div>
+                </PopoverContent>
+              </Popover>
             </div>
 
             <div>
@@ -644,15 +935,7 @@ export default function AddClient() {
           <button
             type="button"
             onClick={() => {
-              setFormData({
-                first_name: "",
-                last_name: "",
-                email: "",
-                phone: "",
-                assignee_id: "",
-                source: "",
-                tag_ids: [],
-              });
+              setFormData(buildEmptyFormData());
               setTagsOpen(false);
               setApplications([{ ...emptyApplication }]);
             }}
