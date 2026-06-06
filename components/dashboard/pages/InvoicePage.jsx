@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronLeft, ChevronRight, Plus, Search, ReceiptText } from "lucide-react";
+import Link from "next/link";
 
 import SectionContainer from "../../../components/dashboard/SectionContainer";
 import { useAppContext } from "@/context/context";
@@ -14,6 +15,7 @@ import {
 } from "@/components/ui/popover";
 import CommissionInvoice from "../invoice/CommissionInvoice";
 import GeneralInvoice from "../invoice/GeneralInvoice";
+import Pagination from "../shared/Pagination";
 
 function InvoicesSkeleton() {
   return (
@@ -81,10 +83,21 @@ export default function InvoicePage() {
     keepPreviousData: true,
   });
 
-  const invoices = data?.data || [];
-  const currentPage = invoices?.current_page || 1;
-  const totalPages = invoices?.last_page || 1;
-  const totalItems = invoices?.total || 0;
+  const paginationData = data || {};
+  const invoicesList = paginationData.data || [];
+  const currentPage = paginationData?.current_page || 1;
+  const totalPages = paginationData?.last_page || 1;
+  const totalItems = paginationData?.total || 0;
+  
+  const paginationInfo = {
+    currentPage,
+    lastPage: totalPages,
+    total: totalItems,
+    from: paginationData?.from,
+    to: paginationData?.to,
+    hasNextPage: !!paginationData?.next_page_url,
+    hasPrevPage: !!paginationData?.prev_page_url,
+  };
 
   const onFilterChange = (nextFilter) => {
     setFilter(nextFilter);
@@ -212,7 +225,7 @@ export default function InvoicePage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {invoices.length === 0 ? (
+                      {invoicesList.length === 0 ? (
                         <tr>
                           <td colSpan={8} className="px-4 py-10 text-center text-sm text-gray-500">
                             <div className="flex flex-col items-center gap-2">
@@ -222,12 +235,14 @@ export default function InvoicePage() {
                           </td>
                         </tr>
                       ) : (
-                        invoices.map((invoice) => {
+                        invoicesList.map((invoice) => {
                           const clientName = [invoice?.client?.first_name, invoice?.client?.last_name].filter(Boolean).join(" ");
                           return (
                             <tr key={invoice.id} className="border-b border-gray-100 last:border-b-0 hover:bg-gray-50/70 transition-colors">
                               <td className="px-4 py-3">
-                                <p className="text-sm font-semibold text-gray-900">{invoice.invoice_number || "-"}</p>
+                                <Link href={`/dashboard/invoice/${invoice.id}`} className="text-sm font-semibold text-[#3B4CB8] hover:underline">
+                                  {invoice.invoice_number || "-"}
+                                </Link>
                                 <p className="text-xs text-gray-500 mt-0.5">{invoice.invoice_type || "-"}</p>
                               </td>
                               <td className="px-4 py-3 text-sm text-gray-700">{clientName || "-"}</td>
@@ -247,32 +262,7 @@ export default function InvoicePage() {
                   </table>
                 </div>
 
-                <div className="px-4 py-3 border-t border-gray-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <p className="text-sm text-gray-500">
-                    Page <span className="font-medium text-gray-900">{currentPage}</span> of <span className="font-medium text-gray-900">{totalPages}</span> ({totalItems} total)
-                  </p>
-
-                  <div className="inline-flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
-                      disabled={currentPage <= 1}
-                      className="inline-flex items-center gap-1 px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <ChevronLeft className="w-4 h-4" />
-                      Previous
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setPage((prev) => Math.min(prev + 1, totalPages))}
-                      disabled={currentPage >= totalPages}
-                      className="inline-flex items-center gap-1 px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      Next
-                      <ChevronRight className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
+                <Pagination {...paginationInfo} onPageChange={setPage} noun="invoices" />
               </div>
             )}
           </div>

@@ -46,7 +46,8 @@ function formatDate(dateString) {
 
 function toDateInputValue(dateString) {
   if (!dateString) return "";
-  if (typeof dateString === "string" && /^\d{4}-\d{2}-\d{2}$/.test(dateString)) return dateString;
+  if (typeof dateString === "string" && /^\d{4}-\d{2}-\d{2}$/.test(dateString))
+    return dateString;
   const parsedDate = new Date(dateString);
   if (Number.isNaN(parsedDate.getTime())) return "";
   return parsedDate.toISOString().slice(0, 10);
@@ -85,7 +86,15 @@ function Skeleton() {
   );
 }
 
-function ActionButton({ href, onClick, disabled, loading, icon: Icon, label, colorClass }) {
+function ActionButton({
+  href,
+  onClick,
+  disabled,
+  loading,
+  icon: Icon,
+  label,
+  colorClass,
+}) {
   const base =
     "group relative flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed border";
   const content = (
@@ -108,7 +117,12 @@ function ActionButton({ href, onClick, disabled, loading, icon: Icon, label, col
   }
 
   return (
-    <button type="button" onClick={onClick} disabled={disabled} className={`${base} ${colorClass}`}>
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={`${base} ${colorClass}`}
+    >
       {content}
     </button>
   );
@@ -132,12 +146,14 @@ export default function ContactProfileHeader({ contactId }) {
   });
 
   const invalidate = () => {
-    queryClient.invalidateQueries({ queryKey: [`/contacts/${contactId}`, accessToken] });
-    queryClient.invalidateQueries({ queryKey: [`/contacts/${contactId}/update-expiry-dates`, accessToken] });
+    queryClient.invalidateQueries({
+      queryKey: [`/contacts/${contactId}`, accessToken],
+    });
+    queryClient.invalidateQueries({
+      queryKey: [`/contacts/${contactId}/update-expiry-dates`, accessToken],
+    });
     queryClient.invalidateQueries({ queryKey: ["/contacts", accessToken] });
   };
-
-  
 
   const updateTagsMutation = useMutation({
     mutationFn: async (tagId) => {
@@ -147,8 +163,10 @@ export default function ContactProfileHeader({ contactId }) {
       return postWithToken(`/contacts/${contactId}/tags`, fd, accessToken);
     },
     onSuccess: (res) => {
-      if (res?.status === "success") { invalidate(); toast.success(res.message || "Tag added"); }
-      else toast.error(res?.message || "Failed to add tag");
+      if (res?.status === "success") {
+        invalidate();
+        toast.success(res.message || "Tag added");
+      } else toast.error(res?.message || "Failed to add tag");
     },
     onError: () => toast.error("Failed to update tags"),
   });
@@ -157,21 +175,28 @@ export default function ContactProfileHeader({ contactId }) {
     mutationFn: async (tagId) => {
       const fd = new FormData();
       fd.append("_method", "DELETE");
-      return postWithToken(`/contacts/${contactId}/tags/${tagId}`, fd, accessToken);
+      return postWithToken(
+        `/contacts/${contactId}/tags/${tagId}`,
+        fd,
+        accessToken,
+      );
     },
     onSuccess: (res) => {
-      if (res?.status === "success") { invalidate(); toast.success(res.message || "Tag removed"); }
-      else toast.error(res?.message || "Failed to remove tag");
+      if (res?.status === "success") {
+        invalidate();
+        toast.success(res.message || "Tag removed");
+      } else toast.error(res?.message || "Failed to remove tag");
     },
     onError: () => toast.error("Failed to remove tag"),
   });
 
   if (isLoading) return <Skeleton />;
-  if (isError) return (
-    <div className="bg-red-50 border border-red-100 rounded-2xl p-5 text-sm text-red-600">
-      Failed to load contact.
-    </div>
-  );
+  if (isError)
+    return (
+      <div className="bg-red-50 border border-red-100 rounded-2xl p-5 text-sm text-red-600">
+        Failed to load contact.
+      </div>
+    );
 
   const contact = data?.data;
   if (!contact) return null;
@@ -187,10 +212,11 @@ export default function ContactProfileHeader({ contactId }) {
     passport_number: contact.passport_number ?? "",
   };
   const addableTags = allTags.filter(
-    (tag) => !contactTags.some((ct) => Number(ct.id) === Number(tag.id))
+    (tag) => !contactTags.some((ct) => Number(ct.id) === Number(tag.id)),
   );
   const contactRating = Number(contact?.contact_rating ?? 0);
-  const fullName = `${contact.first_name || ""} ${contact.last_name || ""}`.trim();
+  const fullName =
+    `${contact.first_name || ""} ${contact.last_name || ""}`.trim();
   const avatarGradient = getAvatarGradient(contact.first_name);
 
   const statusColors = {
@@ -198,26 +224,23 @@ export default function ContactProfileHeader({ contactId }) {
     Inactive: "bg-gray-100 text-gray-500 border-gray-200",
     Prospect: "bg-violet-50 text-violet-700 border-violet-200",
   };
-  const statusClass = statusColors[contact.status] || "bg-blue-50 text-blue-700 border-blue-200";
+  const statusClass =
+    statusColors[contact.status] || "bg-blue-50 text-blue-700 border-blue-200";
 
   return (
-    <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
-      <div className="p-5 lg:p-6">
-        <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
-          <ContactInfo
-            contact={contact}
-            avatarGradient={avatarGradient}
-            initials={initials(contact.first_name, contact.last_name)}
-            fullName={fullName}
-            contactTags={contactTags}
-            addableTags={addableTags}
-            removeTagMutation={removeTagMutation}
-            updateTagsMutation={updateTagsMutation}
-          />
+    <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
+      <ContactInfo
+        contact={contact}
+        avatarGradient={avatarGradient}
+        initials={initials(contact.first_name, contact.last_name)}
+        fullName={fullName}
+        contactTags={contactTags}
+        addableTags={addableTags}
+        removeTagMutation={removeTagMutation}
+        updateTagsMutation={updateTagsMutation}
+      />
 
-          <ContactVisa contactId={contactId} contact={contact} />
-        </div>
-      </div>
+      <ContactVisa contactId={contactId} contact={contact} />
     </div>
   );
 }

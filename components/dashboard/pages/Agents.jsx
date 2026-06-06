@@ -2,8 +2,23 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { Plus, Search, Download, Eye, Edit2, Loader2, Users, UserCheck, UserX } from "lucide-react";
-import { keepPreviousData, useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  Plus,
+  Search,
+  Download,
+  Eye,
+  Edit2,
+  Loader2,
+  Users,
+  UserCheck,
+  UserX,
+} from "lucide-react";
+import {
+  keepPreviousData,
+  useQuery,
+  useMutation,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { fetchWithToken, postWithToken } from "@/helpers/api";
 import { useAppContext } from "@/context/context";
 import { toast } from "react-hot-toast";
@@ -11,6 +26,14 @@ import WarningDialog from "@/components/common/WarningDialog";
 import AgentDialog from "../agents/Agentdialog";
 import AgentsSkeleton from "../agents/AgentsSkeleton";
 import Pagination from "../shared/Pagination";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 export default function Agents() {
   const { accessToken } = useAppContext();
@@ -79,7 +102,7 @@ export default function Agents() {
       hasNextPage: !!data?.next_page_url,
       hasPrevPage: !!data?.prev_page_url,
     }),
-    [data]
+    [data],
   );
 
   // Toggle status mutation
@@ -192,7 +215,9 @@ export default function Agents() {
           setStatusConfirmOpen(open);
           if (!open) setStatusTargetAgent(null);
         }}
-        title={statusTargetAgent?.is_active ? "Deactivate Agent" : "Activate Agent"}
+        title={
+          statusTargetAgent?.is_active ? "Deactivate Agent" : "Activate Agent"
+        }
         description={
           statusTargetAgent?.is_active
             ? "Are you sure you want to deactivate this agent? They will move to the inactive list."
@@ -202,13 +227,17 @@ export default function Agents() {
         onConfirm={confirmToggleStatus}
         isLoading={toggleStatusMutation.isPending}
         confirmLabel={statusTargetAgent?.is_active ? "Deactivate" : "Activate"}
-        confirmingLabel={statusTargetAgent?.is_active ? "Deactivating..." : "Activating..."}
+        confirmingLabel={
+          statusTargetAgent?.is_active ? "Deactivating..." : "Activating..."
+        }
       />
 
       {/* Top Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Agents Management</h2>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Agents Management
+          </h2>
           <p className="text-sm text-gray-500 mt-1">
             Manage all agents and their details
           </p>
@@ -285,43 +314,46 @@ export default function Agents() {
       {/* Table */}
       <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="bg-gray-50 border-b border-gray-200">
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-gray-50 border-b border-gray-200 hover:bg-gray-50">
+                <TableHead className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                   Name
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                </TableHead>
+                <TableHead className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                   Type
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                </TableHead>
+                <TableHead className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                   Structure
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                </TableHead>
+                <TableHead className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                   Phone
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                </TableHead>
+                <TableHead className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                   City
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                </TableHead>
+                <TableHead className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                   Office
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                </TableHead>
+                <TableHead className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                   Clients
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                </TableHead>
+                <TableHead className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                   Applications
-                </th>
-                <th className="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                </TableHead>
+                <TableHead className="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
                   Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {showTableSkeleton ? (
                 Array.from({ length: 6 }).map((_, idx) => (
-                  <tr key={idx} className="hover:bg-gray-50 transition-colors animate-pulse">
-                    <td className="px-6 py-4">
+                  <TableRow
+                    key={idx}
+                    className="hover:bg-gray-50 transition-colors animate-pulse"
+                  >
+                    <TableCell className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-lg bg-gray-200 shrink-0" />
                         <div className="flex-1 space-y-2">
@@ -329,26 +361,43 @@ export default function Agents() {
                           <div className="h-3 w-32 bg-gray-100 rounded" />
                         </div>
                       </div>
-                    </td>
-                    <td className="px-6 py-4"><div className="h-4 w-20 bg-gray-200 rounded" /></td>
-                    <td className="px-6 py-4"><div className="h-4 w-20 bg-gray-200 rounded" /></td>
-                    <td className="px-6 py-4"><div className="h-4 w-28 bg-gray-200 rounded" /></td>
-                    <td className="px-6 py-4"><div className="h-4 w-20 bg-gray-200 rounded" /></td>
-                    <td className="px-6 py-4"><div className="h-4 w-24 bg-gray-200 rounded" /></td>
-                    <td className="px-6 py-4"><div className="h-6 w-12 bg-blue-100 rounded-full" /></td>
-                    <td className="px-6 py-4"><div className="h-6 w-12 bg-green-100 rounded-full" /></td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right">
+                    </TableCell>
+                    <TableCell className="px-6 py-4">
+                      <div className="h-4 w-20 bg-gray-200 rounded" />
+                    </TableCell>
+                    <TableCell className="px-6 py-4">
+                      <div className="h-4 w-20 bg-gray-200 rounded" />
+                    </TableCell>
+                    <TableCell className="px-6 py-4">
+                      <div className="h-4 w-28 bg-gray-200 rounded" />
+                    </TableCell>
+                    <TableCell className="px-6 py-4">
+                      <div className="h-4 w-20 bg-gray-200 rounded" />
+                    </TableCell>
+                    <TableCell className="px-6 py-4">
+                      <div className="h-4 w-24 bg-gray-200 rounded" />
+                    </TableCell>
+                    <TableCell className="px-6 py-4">
+                      <div className="h-6 w-12 bg-blue-100 rounded-full" />
+                    </TableCell>
+                    <TableCell className="px-6 py-4">
+                      <div className="h-6 w-12 bg-green-100 rounded-full" />
+                    </TableCell>
+                    <TableCell className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">
                         {Array.from({ length: 3 }).map((__, btnIdx) => (
-                          <div key={btnIdx} className="w-10 h-10 bg-gray-200 rounded-lg" />
+                          <div
+                            key={btnIdx}
+                            className="w-10 h-10 bg-gray-200 rounded-lg"
+                          />
                         ))}
                       </div>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))
               ) : agents.length === 0 ? (
-                <tr>
-                  <td colSpan="9" className="px-6 py-12 text-center">
+                <TableRow>
+                  <TableCell colSpan={9} className="px-6 py-12 text-center">
                     <div className="flex flex-col items-center gap-2">
                       <Users className="w-12 h-12 text-gray-300" />
                       <p className="text-sm text-gray-500">
@@ -357,81 +406,88 @@ export default function Agents() {
                           : `No ${activeTab === 1 ? "active" : "inactive"} agents found`}
                       </p>
                     </div>
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ) : (
                 agents.map((agent, index) => (
-                  <motion.tr
+                  <TableRow
                     key={agent.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.03 }}
                     className="hover:bg-gray-50 transition-colors"
                   >
                     {/* Name */}
-                    <td className="px-6 py-4">
+                    <TableCell className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                           <Users className="w-5 h-5 text-primary" />
                         </div>
                         <div>
-                          <p className="text-sm font-medium text-gray-900">{agent.name}</p>
+                          <p className="text-sm font-medium text-gray-900">
+                            {agent.name}
+                          </p>
                           <p className="text-xs text-gray-500">{agent.email}</p>
                         </div>
                       </div>
-                    </td>
+                    </TableCell>
 
                     {/* Type */}
-                    <td className="px-6 py-4">
-                      <p className="text-sm text-gray-600">{agent.type_display}</p>
-                    </td>
+                    <TableCell className="px-6 py-4">
+                      <p className="text-sm text-gray-600">
+                        {agent.type_display}
+                      </p>
+                    </TableCell>
 
                     {/* Structure */}
-                    <td className="px-6 py-4">
+                    <TableCell className="px-6 py-4">
                       <p className="text-sm text-gray-600">{agent.structure}</p>
-                    </td>
+                    </TableCell>
 
                     {/* Phone */}
-                    <td className="px-6 py-4">
+                    <TableCell className="px-6 py-4">
                       <p className="text-sm text-gray-600">{agent.phone}</p>
-                    </td>
+                    </TableCell>
 
                     {/* City */}
-                    <td className="px-6 py-4">
+                    <TableCell className="px-6 py-4">
                       <p className="text-sm text-gray-600">{agent.city}</p>
-                    </td>
+                    </TableCell>
 
                     {/* Office */}
-                    <td className="px-6 py-4">
-                      <p className="text-sm text-gray-600">{agent.associated_offices}</p>
-                    </td>
+                    <TableCell className="px-6 py-4">
+                      <p className="text-sm text-gray-600">
+                        {agent.associated_offices}
+                      </p>
+                    </TableCell>
 
                     {/* Clients */}
-                    <td className="px-6 py-4">
+                    <TableCell className="px-6 py-4">
                       <span className="inline-flex items-center px-2.5 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
                         {agent.clients_count}
                       </span>
-                    </td>
+                    </TableCell>
 
                     {/* Applications */}
-                    <td className="px-6 py-4">
+                    <TableCell className="px-6 py-4">
                       <span className="inline-flex items-center px-2.5 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">
                         {agent.applications_count}
                       </span>
-                    </td>
+                    </TableCell>
 
                     {/* Actions */}
-                    <td className="px-6 py-4 whitespace-nowrap text-right">
+                    <TableCell className="px-6 py-4 whitespace-nowrap text-right">
                       <div className="flex items-center justify-end gap-2">
                         <motion.button
                           whileHover={{ scale: 1.1 }}
                           whileTap={{ scale: 0.9 }}
                           onClick={() => handleView(agent)}
-                          disabled={loadingAction.type === "view" && loadingAction.id === agent.id}
+                          disabled={
+                            loadingAction.type === "view" &&
+                            loadingAction.id === agent.id
+                          }
                           className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
                           title="View Details"
                         >
-                          {loadingAction.type === "view" && loadingAction.id === agent.id ? (
+                          {loadingAction.type === "view" &&
+                          loadingAction.id === agent.id ? (
                             <Loader2 className="w-4 h-4 animate-spin" />
                           ) : (
                             <Eye className="w-4 h-4" />
@@ -442,11 +498,15 @@ export default function Agents() {
                           whileHover={{ scale: 1.1 }}
                           whileTap={{ scale: 0.9 }}
                           onClick={() => handleEdit(agent)}
-                          disabled={loadingAction.type === "edit" && loadingAction.id === agent.id}
+                          disabled={
+                            loadingAction.type === "edit" &&
+                            loadingAction.id === agent.id
+                          }
                           className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                           title="Edit"
                         >
-                          {loadingAction.type === "edit" && loadingAction.id === agent.id ? (
+                          {loadingAction.type === "edit" &&
+                          loadingAction.id === agent.id ? (
                             <Loader2 className="w-4 h-4 animate-spin" />
                           ) : (
                             <Edit2 className="w-4 h-4" />
@@ -457,11 +517,15 @@ export default function Agents() {
                           whileHover={{ scale: 1.1 }}
                           whileTap={{ scale: 0.9 }}
                           onClick={() => handleToggleStatus(agent)}
-                          disabled={loadingAction.type === "toggle" && loadingAction.id === agent.id}
+                          disabled={
+                            loadingAction.type === "toggle" &&
+                            loadingAction.id === agent.id
+                          }
                           className="p-2 text-orange-600 hover:bg-orange-50 rounded-lg transition-colors disabled:opacity-50"
                           title={agent.is_active ? "Deactivate" : "Activate"}
                         >
-                          {loadingAction.type === "toggle" && loadingAction.id === agent.id ? (
+                          {loadingAction.type === "toggle" &&
+                          loadingAction.id === agent.id ? (
                             <Loader2 className="w-4 h-4 animate-spin" />
                           ) : agent.is_active ? (
                             <UserX className="w-4 h-4" />
@@ -470,16 +534,20 @@ export default function Agents() {
                           )}
                         </motion.button>
                       </div>
-                    </td>
-                  </motion.tr>
+                    </TableCell>
+                  </TableRow>
                 ))
               )}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
       </div>
 
-      <Pagination {...paginationInfo} onPageChange={setCurrentPage} noun="agents" />
+      <Pagination
+        {...paginationInfo}
+        onPageChange={setCurrentPage}
+        noun="agents"
+      />
 
       {/* Dialog */}
       <AgentDialog

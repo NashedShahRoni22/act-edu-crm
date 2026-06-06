@@ -71,13 +71,13 @@ export const settingsNavigation = [
   //   description: "Manage your conversation through SMS text messages.",
   //   component: "PhoneSettingsContent",
   // },
-  // {
-  //   id: "lead-forms",
-  //   label: "Lead Forms",
-  //   icon: FileInput,
-  //   description: "Manage your Lead Form settings.",
-  //   component: "LeadFormsContent",
-  // },
+  {
+    id: "lead-forms",
+    label: "Lead Forms",
+    icon: FileInput,
+    description: "Manage your Lead Form settings.",
+    component: "LeadFormsContent",
+  },
   // {
   //   id: "advanced-automation",
   //   label: "Advanced Automation Settings",

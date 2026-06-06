@@ -3,15 +3,31 @@
 import { useAppContext } from "@/context/context";
 import { fetchWithToken, postWithToken } from "@/helpers/api";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { AnimatePresence } from "framer-motion";
 import { useState, useEffect, useMemo } from "react";
 import { toast } from "react-hot-toast";
+import Link from "next/link";
+import {
+  Eye,
+  Edit,
+  Trash2,
+  Mail,
+  MapPin,
+  Users,
+  TrendingUp,
+  Clock,
+} from "lucide-react";
 import PartnerFormDialog from "../partners/Partnerformdialog";
-import PartnerCard from "../partners/PartnerCard";
-import PartnersSkeleton from "../partners/PartnersSkeleton";
 import SectionContainer from "../SectionContainer";
 import PartnersFilterSidebar from "../partners/PartnersFilterSidebar";
 import Pagination from "../shared/Pagination";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 export default function PartnersPage() {
   const { accessToken } = useAppContext();
@@ -62,25 +78,35 @@ export default function PartnersPage() {
   const partnerTypes = typesData?.data || [];
 
   // Fetch partners list
-  const {
-    data: partnersData,
-    isLoading,
-  } = useQuery({
-    queryKey: ["/partners", currentPage, debouncedSearchQuery, selectedCategory, selectedType, accessToken],
+  const { data: partnersData, isLoading } = useQuery({
+    queryKey: [
+      "/partners",
+      currentPage,
+      debouncedSearchQuery,
+      selectedCategory,
+      selectedType,
+      accessToken,
+    ],
     queryFn: () => {
       const params = new URLSearchParams();
-      params.append('page', currentPage);
-      if (debouncedSearchQuery) params.append('search', debouncedSearchQuery);
-      if (selectedCategory && selectedCategory !== 'all') params.append('master_category_id', selectedCategory);
-      if (selectedType && selectedType !== 'all') params.append('partner_type_id', selectedType);
-      
-      return fetchWithToken({ queryKey: [`/partners?${params.toString()}`, accessToken] });
+      params.append("page", currentPage);
+      if (debouncedSearchQuery) params.append("search", debouncedSearchQuery);
+      if (selectedCategory && selectedCategory !== "all")
+        params.append("master_category_id", selectedCategory);
+      if (selectedType && selectedType !== "all")
+        params.append("partner_type_id", selectedType);
+
+      return fetchWithToken({
+        queryKey: [`/partners?${params.toString()}`, accessToken],
+      });
     },
     enabled: !!accessToken,
   });
 
-  const partners = partnersData?.data?.data || (Array.isArray(partnersData?.data) ? partnersData?.data : []);
-  
+  const partners =
+    partnersData?.data?.data ||
+    (Array.isArray(partnersData?.data) ? partnersData?.data : []);
+
   const paginationData = useMemo(() => {
     if (!partnersData?.data?.current_page) return null;
     return {
@@ -117,7 +143,10 @@ export default function PartnersPage() {
   };
 
   return (
-    <SectionContainer title="Partners" description="Manage your partner network">
+    <SectionContainer
+      title="Partners"
+      description="Manage your partner network"
+    >
       <div className="flex flex-col lg:flex-row gap-6">
         <PartnersFilterSidebar
           searchQuery={searchQuery}
@@ -136,25 +165,216 @@ export default function PartnersPage() {
 
         <div className="flex-1">
           {isLoading ? (
-            <PartnersSkeleton />
+            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-gray-50 border-b border-gray-200 hover:bg-gray-50">
+                    <TableHead className="py-3 px-6 font-semibold text-gray-600">
+                      Name
+                    </TableHead>
+                    <TableHead className="py-3 px-6 font-semibold text-gray-600">
+                      Category
+                    </TableHead>
+                    <TableHead className="py-3 px-6 font-semibold text-gray-600">
+                      City
+                    </TableHead>
+                    <TableHead className="py-3 px-6 font-semibold text-gray-600 text-center">
+                      Products
+                    </TableHead>
+                    <TableHead className="py-3 px-6 font-semibold text-gray-600 text-center">
+                      Enrolled
+                    </TableHead>
+                    <TableHead className="py-3 px-6 font-semibold text-gray-600 text-center">
+                      In Progress
+                    </TableHead>
+                    <TableHead className="py-3 px-6 font-semibold text-gray-600 text-right">
+                      Actions
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <TableRow key={i} className="animate-pulse">
+                      <TableCell className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-gray-200 shrink-0" />
+                          <div className="space-y-2">
+                            <div className="h-4 w-24 bg-gray-200 rounded" />
+                            <div className="h-3 w-32 bg-gray-100 rounded" />
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="px-6 py-4">
+                        <div className="h-5 w-20 bg-gray-200 rounded-full" />
+                      </TableCell>
+                      <TableCell className="px-6 py-4">
+                        <div className="h-4 w-24 bg-gray-200 rounded" />
+                      </TableCell>
+                      <TableCell className="px-6 py-4">
+                        <div className="h-4 w-12 bg-gray-200 rounded mx-auto" />
+                      </TableCell>
+                      <TableCell className="px-6 py-4">
+                        <div className="h-4 w-12 bg-gray-200 rounded mx-auto" />
+                      </TableCell>
+                      <TableCell className="px-6 py-4">
+                        <div className="h-4 w-12 bg-gray-200 rounded mx-auto" />
+                      </TableCell>
+                      <TableCell className="px-6 py-4 text-right">
+                        <div className="w-16 h-8 bg-gray-200 rounded-lg ml-auto" />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           ) : partners.length > 0 ? (
             <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <AnimatePresence mode="popLayout">
-                  {partners.map((partner) => (
-                    <PartnerCard
-                      key={partner.id}
-                      partner={partner}
-                      onEdit={() => {
-                        setEditingPartner(partner);
-                        setShowAddDialog(true);
-                      }}
-                      onDelete={(e) => handleDelete(e, partner.id)}
-                    />
-                  ))}
-                </AnimatePresence>
+              <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-gray-50 border-b border-gray-200 hover:bg-gray-50">
+                      <TableHead className="py-3 px-6 font-semibold text-gray-600">
+                        Name
+                      </TableHead>
+                      <TableHead className="py-3 px-6 font-semibold text-gray-600">
+                        Category
+                      </TableHead>
+                      <TableHead className="py-3 px-6 font-semibold text-gray-600">
+                        City
+                      </TableHead>
+                      <TableHead className="py-3 px-6 font-semibold text-gray-600 text-center">
+                        Products
+                      </TableHead>
+                      <TableHead className="py-3 px-6 font-semibold text-gray-600 text-center">
+                        Enrolled
+                      </TableHead>
+                      <TableHead className="py-3 px-6 font-semibold text-gray-600 text-center">
+                        In Progress
+                      </TableHead>
+                      <TableHead className="py-3 px-6 font-semibold text-gray-600 text-right">
+                        Actions
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {partners.map((partner) => (
+                      <TableRow
+                        key={partner.id}
+                        className="hover:bg-gray-50 transition-colors"
+                      >
+                        <TableCell className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="bg-[#3B4CB8] w-10 h-10 rounded-xl flex items-center justify-center shrink-0">
+                              {partner.logo ? (
+                                <img
+                                  src={partner.logo}
+                                  alt={partner.name}
+                                  className="w-full h-full object-cover rounded-xl"
+                                />
+                              ) : (
+                                <span className="text-white text-sm font-bold">
+                                  {partner.name?.[0]?.toUpperCase()}
+                                </span>
+                              )}
+                            </div>
+                            <div className="max-w-[200px]">
+                              <p className="text-sm font-semibold text-gray-900 truncate">
+                                {partner.name}
+                              </p>
+                              {partner.email && (
+                                <div className="flex items-center gap-1.5 mt-0.5 text-xs text-gray-500">
+                                  <Mail className="w-3 h-3 text-gray-400 shrink-0" />
+                                  <span className="truncate">
+                                    {partner.email}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="px-6 py-4">
+                          {partner.master_category?.name ? (
+                            <span className="inline-block px-3 py-1 bg-white border border-[#3B4CB8] text-[#3B4CB8] rounded-full text-xs font-medium whitespace-nowrap">
+                              {partner.master_category.name}
+                            </span>
+                          ) : (
+                            <span className="text-gray-400">—</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="px-6 py-4">
+                          {partner.city ? (
+                            <div className="flex items-center gap-1.5 text-sm text-gray-600">
+                              <MapPin className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                              <span className="truncate">{partner.city}</span>
+                            </div>
+                          ) : (
+                            <span className="text-gray-400">—</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="px-6 py-4 text-center">
+                          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-[#EEF2FF] text-[#3B4CB8] rounded-lg">
+                            <Users className="w-3.5 h-3.5" />
+                            <span className="font-semibold text-sm">
+                              {partner.products_count}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="px-6 py-4 text-center">
+                          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-[#ECFDF5] text-[#10B981] rounded-lg">
+                            <TrendingUp className="w-3.5 h-3.5" />
+                            <span className="font-semibold text-sm">
+                              {partner.enrolled_count}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="px-6 py-4 text-center">
+                          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-[#FFFBEB] text-[#F59E0B] rounded-lg">
+                            <Clock className="w-3.5 h-3.5" />
+                            <span className="font-semibold text-sm">
+                              {partner.in_progress_count}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="px-6 py-4">
+                          <div className="flex items-center justify-end gap-1">
+                            <Link
+                              href={`/dashboard/partners/${partner.id}`}
+                              className="p-2 text-gray-400 hover:text-[#3B4CB8] hover:bg-[#3B4CB8]/10 rounded-lg transition-colors"
+                              title="View"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </Link>
+                            {!partner.is_auto_synced && (
+                              <>
+                                <button
+                                  onClick={() => {
+                                    setEditingPartner(partner);
+                                    setShowAddDialog(true);
+                                  }}
+                                  className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                                  title="Edit"
+                                >
+                                  <Edit className="w-4 h-4" />
+                                </button>
+                                {partner.is_deletable && (
+                                  <button
+                                    onClick={(e) => handleDelete(e, partner.id)}
+                                    className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                    title="Delete"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               </div>
-              
+
               {paginationData && paginationData.last_page > 1 && (
                 <div className="mt-8">
                   <Pagination
@@ -166,7 +386,7 @@ export default function PartnersPage() {
               )}
             </div>
           ) : (
-             <div className="flex flex-col items-center justify-center p-12 bg-white rounded-2xl shadow-sm border border-gray-100 text-center">
+            <div className="flex flex-col items-center justify-center p-12 bg-white rounded-2xl shadow-sm border border-gray-100 text-center">
               <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
                 <svg
                   className="w-8 h-8 text-gray-400"
@@ -186,7 +406,9 @@ export default function PartnersPage() {
                 No Partners Found
               </h3>
               <p className="text-gray-500 mb-6">
-                {searchQuery || selectedCategory !== "all" || selectedType !== "all"
+                {searchQuery ||
+                selectedCategory !== "all" ||
+                selectedType !== "all"
                   ? "We couldn't find any partners matching your search criteria."
                   : "Get started by adding your first partner."}
               </p>

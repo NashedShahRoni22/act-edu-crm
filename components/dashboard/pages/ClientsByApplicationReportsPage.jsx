@@ -41,14 +41,14 @@ export default function ClientsByApplicationReportsPage() {
   const [currentPage, setCurrentPage] = useState(1);
 
   const { data: reportsData, isLoading, isFetching } = useQuery({
-    queryKey: ["/reports/clients-by-application?page=" + currentPage, accessToken],
+    queryKey: [`/reports/clients-by-application?rows=10&page=${currentPage}`, accessToken],
     queryFn: fetchWithToken,
     enabled: !!accessToken,
     placeholderData: keepPreviousData,
   });
 
-  const paginationData = reportsData?.data || {};
-  const clients = paginationData?.data || [];
+  const paginationData = reportsData || {};
+  const clients = paginationData.data || [];
   const totalPages = paginationData?.last_page || 1;
   const perPage = paginationData?.per_page || 50;
   const total = paginationData?.total || 0;

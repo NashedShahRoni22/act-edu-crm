@@ -182,26 +182,15 @@ export default function ContactAppointmentsTab({ contactId }) {
                 <div className="mt-3 pt-3 border-t border-gray-100">
                   <p className="text-xs text-gray-500 mb-2">Invitees</p>
                   <div className="flex flex-wrap gap-2">
-                    {appointment.invitees.map((inviteeId) => {
-                      const user = getUserById(inviteeId);
-                      return user ? (
-                        <span
-                          key={inviteeId}
-                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-blue-50 text-blue-700"
-                        >
-                          <User className="w-3 h-3" />
-                          {user.first_name} {user.last_name}
-                        </span>
-                      ) : (
-                        <span
-                          key={inviteeId}
-                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-gray-50 text-gray-700"
-                        >
-                          <User className="w-3 h-3" />
-                          User #{inviteeId}
-                        </span>
-                      );
-                    })}
+                    {appointment.invitees.map((invitee) => (
+                      <span
+                        key={invitee.id}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-blue-50 text-blue-700"
+                      >
+                        <User className="w-3 h-3" />
+                        {invitee.first_name} {invitee.last_name}
+                      </span>
+                    ))}
                   </div>
                 </div>
               )}

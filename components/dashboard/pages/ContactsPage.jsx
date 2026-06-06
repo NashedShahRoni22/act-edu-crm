@@ -1,14 +1,22 @@
 "use client";
 
-import { Users } from "lucide-react";
+import { Users, Clock } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import SectionContainer from "../SectionContainer";
 import { useAppContext } from "@/context/context";
 import { useQuery } from "@tanstack/react-query";
 import { fetchWithToken } from "@/helpers/api";
-import ContactCard from "../contacts/ContactCard";
 import ContactsFilterSidebar from "../contacts/ContactsFilterSidebar";
 import Pagination from "../shared/Pagination";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 const AVATAR_COLORS = [
   "bg-[#3B4CB8]",
@@ -36,40 +44,12 @@ function avatarColor(first, last) {
   return AVATAR_COLORS[n];
 }
 
-// ── Skeleton card ────────────────────────────────────────────
-function SkeletonCard() {
-  return (
-    <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 animate-pulse">
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <div className="w-14 h-14 rounded-full bg-gray-200 flex-shrink-0" />
-          <div className="space-y-2">
-            <div className="h-4 w-32 bg-gray-200 rounded" />
-            <div className="h-5 w-14 bg-gray-100 rounded-md" />
-          </div>
-        </div>
-        <div className="w-5 h-5 bg-gray-200 rounded" />
-      </div>
-      <div className="space-y-3 mb-4">
-        <div className="h-3.5 w-36 bg-gray-200 rounded" />
-        <div className="h-3.5 w-44 bg-gray-200 rounded" />
-        <div className="h-3.5 w-28 bg-gray-200 rounded" />
-      </div>
-      <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-        <div className="h-3.5 w-24 bg-gray-200 rounded" />
-        <div className="flex gap-2">
-          <div className="w-8 h-8 bg-gray-100 rounded-lg" />
-          <div className="w-8 h-8 bg-gray-100 rounded-lg" />
-          <div className="w-8 h-8 bg-gray-100 rounded-lg" />
-        </div>
-      </div>
-    </div>
-  );
-}
+
 
 // ── Main page ────────────────────────────────────────────────
 export default function ContactsPage() {
   const { accessToken } = useAppContext();
+  const router = useRouter();
   const [selectedStatus, setSelectedStatus] = useState("");
   const [selectedSource, setSelectedSource] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -154,19 +134,48 @@ export default function ContactsPage() {
         />
 
         <div className="flex-1 min-w-0">
-          {/* Cards grid */}
+          {/* Table */}
           {isLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <SkeletonCard key={i} />
-              ))}
+            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-gray-50 border-b border-gray-200 hover:bg-gray-50">
+                    <TableHead className="py-3 px-6 font-semibold text-gray-600">Name</TableHead>
+                    <TableHead className="py-3 px-6 font-semibold text-gray-600">Status</TableHead>
+                    <TableHead className="py-3 px-6 font-semibold text-gray-600">Phone</TableHead>
+                    <TableHead className="py-3 px-6 font-semibold text-gray-600">Source</TableHead>
+                    <TableHead className="py-3 px-6 font-semibold text-gray-600">Added Date</TableHead>
+                    <TableHead className="py-3 px-6 font-semibold text-gray-600">Applications</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <TableRow key={i} className="animate-pulse">
+                      <TableCell className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-gray-200 shrink-0" />
+                          <div className="space-y-2">
+                            <div className="h-4 w-24 bg-gray-200 rounded" />
+                            <div className="h-3 w-32 bg-gray-100 rounded" />
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="px-6 py-4"><div className="h-5 w-16 bg-gray-200 rounded-md" /></TableCell>
+                      <TableCell className="px-6 py-4"><div className="h-4 w-24 bg-gray-200 rounded" /></TableCell>
+                      <TableCell className="px-6 py-4"><div className="h-4 w-20 bg-gray-200 rounded" /></TableCell>
+                      <TableCell className="px-6 py-4"><div className="h-4 w-24 bg-gray-200 rounded" /></TableCell>
+                      <TableCell className="px-6 py-4"><div className="h-6 w-16 bg-gray-200 rounded-full" /></TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </div>
           ) : error ? (
-            <div className="text-center py-16 text-sm text-red-500">
+            <div className="text-center py-16 text-sm text-red-500 bg-white rounded-xl border border-gray-200">
               Failed to load contacts. Please try again.
             </div>
           ) : contacts.length === 0 ? (
-            <div className="text-center py-16">
+            <div className="text-center py-16 bg-white rounded-xl border border-gray-200">
               <Users className="w-12 h-12 text-gray-300 mx-auto mb-2" />
               <p className="text-sm text-gray-500">
                 {searchQuery
@@ -175,46 +184,103 @@ export default function ContactsPage() {
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {contacts.map((contact, index) => {
-                const badgeStyle =
-                  STATUS_BADGE[contact.status] ?? "bg-gray-100 text-gray-600";
-                const color = avatarColor(
-                  contact.first_name,
-                  contact.last_name,
-                );
-                const initials = getInitials(
-                  contact.first_name,
-                  contact.last_name,
-                );
-                const addedDate = contact.created_at
-                  ? new Date(contact.created_at).toLocaleDateString("en-GB", {
-                      day: "2-digit",
-                      month: "short",
-                      year: "numeric",
-                    })
-                  : "—";
+            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-gray-50 border-b border-gray-200 hover:bg-gray-50">
+                    <TableHead className="py-3 px-6 font-semibold text-gray-600">Name</TableHead>
+                    <TableHead className="py-3 px-6 font-semibold text-gray-600">Status</TableHead>
+                    <TableHead className="py-3 px-6 font-semibold text-gray-600">Phone</TableHead>
+                    <TableHead className="py-3 px-6 font-semibold text-gray-600">Source</TableHead>
+                    <TableHead className="py-3 px-6 font-semibold text-gray-600">Added Date</TableHead>
+                    <TableHead className="py-3 px-6 font-semibold text-gray-600">Applications</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {contacts.map((contact, index) => {
+                    const badgeStyle = STATUS_BADGE[contact.status] ?? "bg-gray-100 text-gray-600";
+                    const color = avatarColor(contact.first_name, contact.last_name);
+                    const initials = getInitials(contact.first_name, contact.last_name);
+                    const addedDate = contact.created_at
+                      ? new Date(contact.created_at).toLocaleDateString("en-GB", {
+                          day: "2-digit",
+                          month: "short",
+                          year: "numeric",
+                        })
+                      : "—";
 
-                return (
-                  <ContactCard
-                    key={index}
-                    contact={contact}
-                    index={index}
-                    badgeStyle={badgeStyle}
-                    color={color}
-                    initials={initials}
-                    addedDate={addedDate}
-                  />
-                );
-              })}
+                    return (
+                      <TableRow 
+                        key={contact.id || index} 
+                        className="hover:bg-gray-50 transition-colors cursor-pointer"
+                        onClick={() => router.push(`/dashboard/contacts/${contact.id}`)}
+                      >
+                        <TableCell className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className={`${color} w-10 h-10 rounded-full flex items-center justify-center shrink-0`}>
+                              <span className="text-white text-sm font-bold">{initials}</span>
+                            </div>
+                            <div className="max-w-[200px]">
+                              <p className="text-sm font-semibold text-gray-900 truncate">
+                                {contact.first_name} {contact.last_name}
+                              </p>
+                              <p className="text-xs text-gray-500 truncate">{contact.email}</p>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="px-6 py-4">
+                          <span className={`inline-block px-2.5 py-0.5 rounded-md text-xs font-medium ${badgeStyle}`}>
+                            {contact.status || "—"}
+                          </span>
+                        </TableCell>
+                        <TableCell className="px-6 py-4">
+                          <p className="text-sm text-gray-600">{contact.phone || "—"}</p>
+                        </TableCell>
+                        <TableCell className="px-6 py-4">
+                          <p className="text-sm text-gray-600 font-medium">{contact.source || "—"}</p>
+                        </TableCell>
+                        <TableCell className="px-6 py-4">
+                          <div className="flex items-center gap-1.5 text-sm text-gray-600">
+                            <Clock className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                            <span>{addedDate}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="px-6 py-4">
+                          {contact.applications?.length > 0 ? (
+                            <div className="flex flex-wrap gap-1">
+                              {contact.applications.slice(0, 2).map((app) => (
+                                <span
+                                  key={app.id}
+                                  className="inline-flex items-center px-2 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-100 rounded-full text-xs font-medium truncate max-w-[120px]"
+                                >
+                                  {app.workflow?.name ?? `App #${app.id}`}
+                                </span>
+                              ))}
+                              {contact.applications.length > 2 && (
+                                <span className="inline-flex items-center px-2 py-0.5 bg-gray-50 text-gray-600 border border-gray-200 rounded-full text-xs font-medium">
+                                  +{contact.applications.length - 2}
+                                </span>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-sm text-gray-400">—</span>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
             </div>
           )}
 
-          <Pagination
-            {...paginationInfo}
-            onPageChange={setCurrentPage}
-            noun="contacts"
-          />
+          <div className="mt-4">
+            <Pagination
+              {...paginationInfo}
+              onPageChange={setCurrentPage}
+              noun="contacts"
+            />
+          </div>
         </div>
       </div>
     </SectionContainer>

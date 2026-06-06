@@ -63,7 +63,7 @@ export default function TasksReportsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [taskType, setTaskType] = useState("personal");
 
-  const queryString = `/reports/tasks?page=${currentPage}&type=${taskType}`;
+  const queryString = `/reports/tasks?rows=10&page=${currentPage}&type=${taskType}`;
 
   const { data: reportsData, isLoading, isFetching } = useQuery({
     queryKey: [queryString, accessToken],
@@ -72,8 +72,8 @@ export default function TasksReportsPage() {
     placeholderData: keepPreviousData,
   });
 
-  const paginationData = reportsData?.data || {};
-  const tasks = paginationData?.data || [];
+  const paginationData = reportsData || {};
+  const tasks = paginationData.data || [];
   const totalPages = paginationData?.last_page || 1;
   const total = paginationData?.total || 0;
   const paginationInfo = {

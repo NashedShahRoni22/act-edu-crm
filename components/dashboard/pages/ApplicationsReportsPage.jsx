@@ -66,10 +66,9 @@ export default function ApplicationsReportsPage() {
     }
   }, [workflowsData]);
 
-  // Build query string with optional workflow_id
   const queryString = selectedWorkflowId
-    ? `/reports/applications?page=${currentPage}&workflow_id=${selectedWorkflowId}`
-    : `/reports/applications?page=${currentPage}`;
+    ? `/reports/applications?rows=10&page=${currentPage}&workflow_id=${selectedWorkflowId}`
+    : `/reports/applications?rows=10&page=${currentPage}`;
 
   const { data: reportsData, isLoading, isFetching } = useQuery({
     queryKey: [queryString, accessToken],
@@ -78,8 +77,8 @@ export default function ApplicationsReportsPage() {
     placeholderData: keepPreviousData,
   });
 
-  const paginationData = reportsData?.data || {};
-  const applications = paginationData?.data || [];
+  const paginationData = reportsData || {};
+  const applications = paginationData.data || [];
   const totalPages = paginationData?.last_page || 1;
   const total = paginationData?.total || 0;
   const paginationInfo = {
