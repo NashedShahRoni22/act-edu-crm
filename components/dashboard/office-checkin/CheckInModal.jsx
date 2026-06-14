@@ -143,23 +143,23 @@ export default function CheckInModal({ isOpen, onClose }) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="phone">Phone</Label>
+            <Label htmlFor="phone">Phone *</Label>
             <Input
               id="phone"
               name="phone"
               value={formData.phone}
               onChange={handleChange}
+              required
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="visit_purpose">Visit Purpose *</Label>
+            <Label htmlFor="visit_purpose">Purpose of Visit</Label>
             <Input
               id="visit_purpose"
               name="visit_purpose"
               value={formData.visit_purpose}
               onChange={handleChange}
-              required
             />
           </div>
 
@@ -177,7 +177,11 @@ export default function CheckInModal({ isOpen, onClose }) {
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="submit" disabled={mutation.isPending} className="text-white">
+            <Button
+              type="submit"
+              disabled={mutation.isPending}
+              className="text-white"
+            >
               {mutation.isPending ? "Checking In..." : "Check In"}
             </Button>
           </div>

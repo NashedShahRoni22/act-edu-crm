@@ -18,13 +18,16 @@ import {
 import ApplicationDetailTabs from "./ApplicationDetailTabs";
 import {
   Calendar,
-  Package,
   TrendingUp,
   CheckCircle,
   Clock,
   AlertCircle,
+  Pencil,
+  X,
+  Check,
 } from "lucide-react";
 import ApplicationInformations from "./ApplicationInformations";
+import { useState } from "react";
 
 function ApplicationsSkeleton() {
   return (
@@ -52,18 +55,54 @@ function formatDate(dateString) {
 export default function ApplicationAccordion({ contactId }) {
   const { accessToken } = useAppContext();
   const queryClient = useQueryClient();
+  const [editingAppId, setEditingAppId] = useState(null);
+  const [editPartnerClientId, setEditPartnerClientId] = useState("");
+
+  // Add this mutation alongside updateStatusMutation:
+  const updatePartnerClientIdMutation = useMutation({
+    mutationFn: async ({ applicationId, partnerClientId }) => {
+      const fd = new FormData();
+      fd.append("_method", "PUT");
+      fd.append("partner_client_id", partnerClientId);
+      return postWithToken(
+        `/applications/${applicationId}/partner-client-id`,
+        fd,
+        accessToken,
+      );
+    },
+    onSuccess: (res) => {
+      if (res?.status === "success") {
+        queryClient.invalidateQueries({
+          queryKey: [`/contacts/${contactId}/applications`],
+        });
+        toast.success(res.message || "Partner client ID updated");
+        setEditingAppId(null);
+      } else {
+        toast.error(res?.message || "Failed to update partner client ID");
+      }
+    },
+    onError: () => toast.error("Failed to update partner client ID"),
+  });
 
   const updateStatusMutation = useMutation({
     mutationFn: async ({ applicationId, status }) => {
       const fd = new FormData();
       fd.append("_method", "PUT");
       fd.append("status", status);
-      return postWithToken(`/applications/${applicationId}/status`, fd, accessToken);
+      return postWithToken(
+        `/applications/${applicationId}/status`,
+        fd,
+        accessToken,
+      );
     },
     onSuccess: (res, variables) => {
       if (res?.status === "success") {
-        queryClient.invalidateQueries({ queryKey: [`/contacts/${contactId}/applications`] });
-        toast.success(res.message || `Application status updated to ${variables.status}`);
+        queryClient.invalidateQueries({
+          queryKey: [`/contacts/${contactId}/applications`],
+        });
+        toast.success(
+          res.message || `Application status updated to ${variables.status}`,
+        );
       } else {
         toast.error(res?.message || "Failed to update status");
       }
@@ -136,9 +175,77 @@ export default function ApplicationAccordion({ contactId }) {
               <div className="flex flex-1 flex-col gap-3 pr-4 text-left">
                 {/* Header Row - Title and ID */}
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                  <h4 className="text-sm font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
-                    Application #{application.id}
-                  </h4>
+                  <div className="flex gap-4 items-center">
+                    <h4 className="text-sm font-semibold text-gray-900">
+                      Application ID: {application.id}
+                    </h4>
+
+                    <div
+                      className="flex items-center gap-1.5"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {editingAppId === application.id ? (
+                        <>
+                          <input
+                            type="text"
+                            value={editPartnerClientId}
+                            onChange={(e) =>
+                              setEditPartnerClientId(e.target.value)
+                            }
+                            className="border border-gray-300 rounded-md px-2 py-1 text-xs text-gray-800 w-32 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                            autoFocus
+                          />
+                          <button
+                            type="button"
+                            disabled={updatePartnerClientIdMutation.isPending}
+                            onClick={() =>
+                              updatePartnerClientIdMutation.mutate({
+                                applicationId: application.id,
+                                partnerClientId: editPartnerClientId,
+                              })
+                            }
+                            className="text-green-600 hover:text-green-700 disabled:opacity-50 transition-colors"
+                          >
+                            {updatePartnerClientIdMutation.isPending ? (
+                              <span className="w-3.5 h-3.5 animate-spin border border-current border-t-transparent rounded-full inline-block" />
+                            ) : (
+                              <Check className="w-3.5 h-3.5" />
+                            )}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setEditingAppId(null)}
+                            className="text-gray-400 hover:text-gray-600 transition-colors"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <span className="text-sm font-semibold text-gray-900">
+                            Partner's Client ID:{" "}
+                            {application.partner_client_id || (
+                              <span className="text-gray-400 font-normal">
+                                —
+                              </span>
+                            )}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingAppId(application.id);
+                              setEditPartnerClientId(
+                                application.partner_client_id ?? "",
+                              );
+                            }}
+                            className="text-gray-400 hover:text-blue-500 transition-colors"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
                   <div onClick={(e) => e.stopPropagation()}>
                     <Popover>
                       <PopoverTrigger asChild>
@@ -146,7 +253,9 @@ export default function ApplicationAccordion({ contactId }) {
                           type="button"
                           className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg font-medium text-xs whitespace-nowrap transition-colors hover:brightness-95 ${getStatusColor(application.status)}`}
                         >
-                          {updateStatusMutation.isPending && updateStatusMutation.variables?.applicationId === application.id ? (
+                          {updateStatusMutation.isPending &&
+                          updateStatusMutation.variables?.applicationId ===
+                            application.id ? (
                             <span className="w-4 h-4 animate-spin border-2 border-current border-t-transparent rounded-full" />
                           ) : (
                             getStatusIcon(application.status)
@@ -155,20 +264,33 @@ export default function ApplicationAccordion({ contactId }) {
                         </button>
                       </PopoverTrigger>
                       <PopoverContent className="w-44 p-1" align="end">
-                        {['Pending', 'In Progress', 'Completed', 'Discontinued'].map((s) => (
+                        {[
+                          "Pending",
+                          "In Progress",
+                          "Completed",
+                          "Discontinued",
+                        ].map((s) => (
                           <button
                             key={s}
                             type="button"
                             onClick={() => {
                               if (application.status !== s) {
-                                updateStatusMutation.mutate({ applicationId: application.id, status: s });
+                                updateStatusMutation.mutate({
+                                  applicationId: application.id,
+                                  status: s,
+                                });
                               }
                             }}
-                            disabled={updateStatusMutation.isPending || application.status === s}
+                            disabled={
+                              updateStatusMutation.isPending ||
+                              application.status === s
+                            }
                             className="w-full text-left px-3 py-2 text-sm rounded hover:bg-gray-50 disabled:opacity-50 flex items-center justify-between"
                           >
                             {s}
-                            {application.status === s && <CheckCircle className="w-4 h-4 text-emerald-500" />}
+                            {application.status === s && (
+                              <CheckCircle className="w-4 h-4 text-emerald-500" />
+                            )}
                           </button>
                         ))}
                       </PopoverContent>

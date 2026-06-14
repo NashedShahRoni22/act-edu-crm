@@ -21,7 +21,13 @@ import {
 
 const APP_BLUE = "#3B4CB8";
 const currencyOptions = ["AUD", "USD", "GBP", "CAD", "EUR"];
-const paymentMethodOptions = ["Cheque", "Bank Transfer", "Cash", "Credit Card", "Other"];
+const paymentMethodOptions = [
+  "Cheque",
+  "Bank Transfer",
+  "Cash",
+  "Credit Card",
+  "Other",
+];
 const taxOptions = ["GST (10%)", "GST (0%)", "No Tax"];
 
 function todayValue() {
@@ -65,11 +71,15 @@ function SectionTitle({ children }) {
 function DetailCard({ title, rows }) {
   return (
     <div className="rounded-xl border border-gray-200 bg-white p-4 flex-1">
-      <p className="text-sm font-semibold text-gray-800 border-b border-gray-100 pb-2 mb-3">{title}</p>
+      <p className="text-sm font-semibold text-gray-800 border-b border-gray-100 pb-2 mb-3">
+        {title}
+      </p>
       <div className="space-y-2">
         {rows.map(({ label, value }) => (
           <div key={label} className="flex gap-3 text-sm">
-            <span className="font-medium text-gray-600 w-28 shrink-0">{label}:</span>
+            <span className="font-medium text-gray-600 w-28 shrink-0">
+              {label}:
+            </span>
             <span className="text-gray-800">{value || "—"}</span>
           </div>
         ))}
@@ -81,10 +91,16 @@ function DetailCard({ title, rows }) {
 // ── Summary row ──────────────────────────────────────────────────────────────
 function SummaryRow({ label, value, currency, bold }) {
   return (
-    <div className={`flex items-center justify-between py-1.5 border-b border-gray-100 last:border-0 ${bold ? "font-semibold" : ""}`}>
-      <span className={`text-sm ${bold ? "text-gray-900" : "text-gray-600"}`}>{label}</span>
+    <div
+      className={`flex items-center justify-between py-1.5 border-b border-gray-100 last:border-0 ${bold ? "font-semibold" : ""}`}
+    >
+      <span className={`text-sm ${bold ? "text-gray-900" : "text-gray-600"}`}>
+        {label}
+      </span>
       <div className="flex items-center gap-2">
-        <span className={`text-sm tabular-nums ${bold ? "text-gray-900" : "text-gray-700"}`}>
+        <span
+          className={`text-sm tabular-nums ${bold ? "text-gray-900" : "text-gray-700"}`}
+        >
           {toCurrencyNumber(value).toFixed(2)}
         </span>
         <span className="text-xs text-gray-400 w-8">{currency}</span>
@@ -93,11 +109,19 @@ function SummaryRow({ label, value, currency, bold }) {
   );
 }
 
-export default function CommissionInvoice({ open, onOpenChange, inline = false, onClose }) {
+export default function CommissionInvoice({
+  open,
+  onOpenChange,
+  inline = false,
+  onClose,
+}) {
   const { accessToken } = useAppContext();
   const queryClient = useQueryClient();
   // ── Header state ────────────────────────────────────────────────────────────
-  const [invoiceTypes, setInvoiceTypes] = useState({ commission_net: true, commission_gross: false });
+  const [invoiceTypes, setInvoiceTypes] = useState({
+    commission_net: true,
+    commission_gross: false,
+  });
   const [currency, setCurrency] = useState("AUD");
   const [clientId, setClientId] = useState("");
   const [applicationId, setApplicationId] = useState("");
@@ -123,28 +147,46 @@ export default function CommissionInvoice({ open, onOpenChange, inline = false, 
   const contacts = contactsData?.data || [];
   const clientContacts = contacts.filter((c) => c.status === "Client");
 
-  const { data: applicationsData, isLoading: isApplicationsLoading } = useQuery({
-    queryKey: [`/contacts/${clientId}/applications`, accessToken],
-    queryFn: fetchWithToken,
-    enabled: !!accessToken && !!clientId && isVisible,
-  });
-  const applications = useMemo(() => applicationsData?.data || [], [applicationsData?.data]);
+  const { data: applicationsData, isLoading: isApplicationsLoading } = useQuery(
+    {
+      queryKey: [`/contacts/${clientId}/applications`, accessToken],
+      queryFn: fetchWithToken,
+      enabled: !!accessToken && !!clientId && isVisible,
+    },
+  );
+  const applications = useMemo(
+    () => applicationsData?.data || [],
+    [applicationsData?.data],
+  );
 
   const selectedApplication = useMemo(
     () => applications.find((a) => String(a.id) === String(applicationId)),
-    [applications, applicationId]
+    [applications, applicationId],
   );
   const selectedPartner = selectedApplication?.courses?.[0]?.partner || null;
-  const selectedClient = clientContacts.find((c) => String(c.id) === String(clientId)) || null;
+  const selectedClient =
+    clientContacts.find((c) => String(c.id) === String(clientId)) || null;
   const course = selectedApplication?.courses?.[0] || null;
 
   // ── Computed totals ─────────────────────────────────────────────────────────
-  const totalFee = items.reduce((s, i) => s + toCurrencyNumber(i.total_fee), 0);
-  const commissionClaimed = items.reduce((s, i) => s + toCurrencyNumber(i.commission_amount), 0);
-  const taxTotal = items.reduce((s, i) => s + toCurrencyNumber(i.tax_amount), 0);
-  const netFeePaidToPartner = totalFee - commissionClaimed - toCurrencyNumber(discountGiven);
-  const netFeeReceived = totalFee - toCurrencyNumber(discountGiven);
-  const netIncome = commissionClaimed - taxTotal;
+  const baseTotalFee = items.reduce(
+    (s, i) => s + toCurrencyNumber(i.total_fee),
+    0,
+  );
+  const commissionClaimed = items.reduce(
+    (s, i) => s + toCurrencyNumber(i.commission_amount),
+    0,
+  );
+  const taxTotal = items.reduce(
+    (s, i) => s + toCurrencyNumber(i.tax_amount),
+    0,
+  );
+  const discount = toCurrencyNumber(discountGiven);
+
+  const totalFee = baseTotalFee;
+  const netFeePaidToPartner = baseTotalFee - commissionClaimed - taxTotal; // discount excluded
+  const netFeeReceived = baseTotalFee - discount; // discount deducted
+  const netIncome = commissionClaimed - discount; // discount deducted
 
   // ── Item helpers ─────────────────────────────────────────────────────────────
   const updateItem = (id, field, value) => {
@@ -152,34 +194,54 @@ export default function CommissionInvoice({ open, onOpenChange, inline = false, 
       prev.map((item) => {
         if (item.id !== id) return item;
         const updated = { ...item, [field]: value };
-        // auto-calc commission amount
+
+        // auto-calc commission amount from percent
         if (field === "commission_percent" || field === "total_fee") {
-          const fee = toCurrencyNumber(field === "total_fee" ? value : updated.total_fee);
-          const pct = toCurrencyNumber(field === "commission_percent" ? value : updated.commission_percent);
+          const fee = toCurrencyNumber(
+            field === "total_fee" ? value : updated.total_fee,
+          );
+          const pct = toCurrencyNumber(
+            field === "commission_percent" ? value : updated.commission_percent,
+          );
           updated.commission_amount = ((fee * pct) / 100).toFixed(2);
         }
-        // auto-calc net amount
+
+        // tax is calculated on commission amount (GST 10% on commission, 0% for others)
+        const commAmt = toCurrencyNumber(
+          field === "commission_amount" ? value : updated.commission_amount,
+        );
+        const taxRate = updated.tax === "GST (10%)" ? 10 : 0;
+        updated.tax_amount = ((commAmt * taxRate) / 100).toFixed(2);
+
+        // net_amount = total_fee - commission_amount - tax_amount
         updated.net_amount = (
-          toCurrencyNumber(updated.total_fee) - toCurrencyNumber(updated.tax_amount)
+          toCurrencyNumber(updated.total_fee) -
+          toCurrencyNumber(updated.commission_amount) -
+          toCurrencyNumber(updated.tax_amount)
         ).toFixed(2);
+
         return updated;
-      })
+      }),
     );
   };
 
   const addItem = () => setItems((prev) => [...prev, blankItem()]);
-  const removeItem = (id) => setItems((prev) => prev.filter((i) => i.id !== id));
+  const removeItem = (id) =>
+    setItems((prev) => prev.filter((i) => i.id !== id));
 
   // (payment & income-share helper functions removed)
 
   // ── Submit ───────────────────────────────────────────────────────────────────
   const saveMutation = useMutation({
     mutationFn: async () => {
-      if (!selectedPartner?.id) throw new Error("Select an application with a partner before saving");
+      if (!selectedPartner?.id)
+        throw new Error("Select an application with a partner before saving");
       if (!clientId) throw new Error("Please select a client");
       if (!applicationId) throw new Error("Please select an application");
 
-      const invoiceType = invoiceTypes.commission_gross ? "commission_gross" : "commission_net";
+      const invoiceType = invoiceTypes.commission_gross
+        ? "commission_gross"
+        : "commission_net";
       const payload = {
         invoice_type: invoiceType,
         partner_id: selectedPartner.id,
@@ -188,9 +250,9 @@ export default function CommissionInvoice({ open, onOpenChange, inline = false, 
         invoice_date: invoiceDate,
         due_date: dueDate,
         currency,
-        sub_total: totalFee,
+        sub_total: baseTotalFee,
         tax_total: taxTotal,
-        grand_total: totalFee,
+        grand_total: baseTotalFee,
         total_paid: 0,
         amount_due: netFeePaidToPartner,
         discount_given: toCurrencyNumber(discountGiven),
@@ -209,13 +271,20 @@ export default function CommissionInvoice({ open, onOpenChange, inline = false, 
         })),
       };
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/invoices`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/invoices`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        },
+      );
       const data = await response.json();
-      if (!response.ok || data?.status !== "success") throw new Error(data?.message || "Failed to create invoice");
+      if (!response.ok || data?.status !== "success")
+        throw new Error(data?.message || "Failed to create invoice");
       return data;
     },
     onSuccess: async () => {
@@ -224,14 +293,17 @@ export default function CommissionInvoice({ open, onOpenChange, inline = false, 
       if (typeof onClose === "function") onClose();
       await queryClient.invalidateQueries({ queryKey: ["/invoices"] });
     },
-    onError: (error) => toast.error(error?.message || "Failed to create invoice"),
+    onError: (error) =>
+      toast.error(error?.message || "Failed to create invoice"),
   });
 
   const inner = (
     <div className="max-w-[95vw] w-full max-h-[95vh] overflow-y-auto p-0">
       {/* ── Header bar ── */}
       <div className="sticky top-0 z-10 bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between">
-        <div className="text-base font-semibold text-gray-900">Create Commission Invoice</div>
+        <div className="text-base font-semibold text-gray-900">
+          Create Commission Invoice
+        </div>
 
         {/* Invoice type checkboxes + currency + dates */}
         <div className="flex items-center gap-6">
@@ -241,13 +313,20 @@ export default function CommissionInvoice({ open, onOpenChange, inline = false, 
               { key: "commission_net", label: "Commission Net" },
               { key: "commission_gross", label: "Commission Gross" },
             ].map(({ key, label }) => (
-              <label key={key} className="flex items-center gap-1.5 cursor-pointer select-none">
+              <label
+                key={key}
+                className="flex items-center gap-1.5 cursor-pointer select-none"
+              >
                 <input
                   type="radio"
                   name="invoice_type"
                   checked={invoiceTypes[key]}
                   onChange={() =>
-                    setInvoiceTypes(key === "commission_net" ? { commission_net: true, commission_gross: false } : { commission_net: false, commission_gross: true })
+                    setInvoiceTypes(
+                      key === "commission_net"
+                        ? { commission_net: true, commission_gross: false }
+                        : { commission_net: false, commission_gross: true },
+                    )
                   }
                   className="w-3.5 h-3.5 accent-[#3B4CB8]"
                 />
@@ -265,7 +344,9 @@ export default function CommissionInvoice({ open, onOpenChange, inline = false, 
               </SelectTrigger>
               <SelectContent>
                 {currencyOptions.map((c) => (
-                  <SelectItem key={c} value={c}>{c}</SelectItem>
+                  <SelectItem key={c} value={c}>
+                    {c}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -274,29 +355,49 @@ export default function CommissionInvoice({ open, onOpenChange, inline = false, 
           {/* Dates */}
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-1.5">
-              <span className="text-xs text-gray-500 whitespace-nowrap">Invoice Date</span>
-              <Input type="date" value={invoiceDate} onChange={(e) => setInvoiceDate(e.target.value)} className="h-8 text-xs w-36" />
+              <span className="text-xs text-gray-500 whitespace-nowrap">
+                Invoice Date
+              </span>
+              <Input
+                type="date"
+                value={invoiceDate}
+                onChange={(e) => setInvoiceDate(e.target.value)}
+                className="h-8 text-xs w-36"
+              />
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="text-xs text-gray-500 whitespace-nowrap">Due Date</span>
-              <Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} className="h-8 text-xs w-36" />
+              <span className="text-xs text-gray-500 whitespace-nowrap">
+                Due Date
+              </span>
+              <Input
+                type="date"
+                value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
+                className="h-8 text-xs w-36"
+              />
             </div>
           </div>
         </div>
       </div>
 
       <div className="px-6 py-5 space-y-6">
-
         {/* ── Client + Application selectors ── */}
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1.5">
             <Label className="text-xs">Client</Label>
             <Select
               value={clientId}
-              onValueChange={(v) => { setClientId(v); setApplicationId(""); }}
+              onValueChange={(v) => {
+                setClientId(v);
+                setApplicationId("");
+              }}
             >
               <SelectTrigger className="w-full">
-                <SelectValue placeholder={isContactsLoading ? "Loading..." : "Select client"} />
+                <SelectValue
+                  placeholder={
+                    isContactsLoading ? "Loading..." : "Select client"
+                  }
+                />
               </SelectTrigger>
               <SelectContent>
                 {clientContacts.map((c) => (
@@ -315,7 +416,15 @@ export default function CommissionInvoice({ open, onOpenChange, inline = false, 
               disabled={!clientId || isApplicationsLoading}
             >
               <SelectTrigger className="w-full">
-                <SelectValue placeholder={!clientId ? "Select a client first" : isApplicationsLoading ? "Loading..." : "Select application"} />
+                <SelectValue
+                  placeholder={
+                    !clientId
+                      ? "Select a client first"
+                      : isApplicationsLoading
+                        ? "Loading..."
+                        : "Select application"
+                  }
+                />
               </SelectTrigger>
               <SelectContent>
                 {applications.map((a) => (
@@ -328,34 +437,44 @@ export default function CommissionInvoice({ open, onOpenChange, inline = false, 
           </div>
         </div>
 
-          {/* ── Partner + Client detail cards ── */}
-          {(selectedApplication || selectedClient) ? (
-            <div className="flex gap-4">
-              <DetailCard
-                title="Partner Details"
-                rows={[
-                  { label: "Name", value: selectedPartner?.name },
-                  { label: "Address", value: selectedPartner?.address },
-                  { label: "Contact", value: selectedPartner?.phone },
-                  { label: "Service", value: course?.workflow?.name },
-                ]}
-              />
-              <DetailCard
-                title="Client Details"
-                rows={[
-                  { label: "Name", value: selectedClient ? `${selectedClient.first_name} ${selectedClient.last_name}` : null },
-                  { label: "DOB", value: selectedClient?.dob },
-                  { label: "Partner Client Id", value: selectedClient?.partner_client_id },
-                  { label: "Partner", value: selectedPartner?.name },
-                  { label: "Product", value: course?.product?.name },
-                  { label: "Branch", value: course?.branch?.name },
-                  { label: "Workflow", value: course?.workflow?.name },
-                ]}
-              />
-            </div>
-          ) : (
-            <div className="text-sm text-gray-500">Select a client and application to view partner & client details.</div>
-          )}
+        {/* ── Partner + Client detail cards ── */}
+        {selectedApplication || selectedClient ? (
+          <div className="flex gap-4">
+            <DetailCard
+              title="Partner Details"
+              rows={[
+                { label: "Name", value: selectedPartner?.name },
+                { label: "Address", value: selectedPartner?.address },
+                { label: "Contact", value: selectedPartner?.phone },
+                { label: "Service", value: course?.workflow?.name },
+              ]}
+            />
+            <DetailCard
+              title="Client Details"
+              rows={[
+                {
+                  label: "Name",
+                  value: selectedClient
+                    ? `${selectedClient.first_name} ${selectedClient.last_name}`
+                    : null,
+                },
+                { label: "DOB", value: selectedClient?.dob },
+                {
+                  label: "Partner Client Id",
+                  value: selectedClient?.partner_client_id,
+                },
+                { label: "Partner", value: selectedPartner?.name },
+                { label: "Product", value: course?.product?.name },
+                { label: "Branch", value: course?.branch?.name },
+                { label: "Workflow", value: course?.workflow?.name },
+              ]}
+            />
+          </div>
+        ) : (
+          <div className="text-sm text-gray-500">
+            Select a client and application to view partner & client details.
+          </div>
+        )}
 
         {/* ── Items table ── */}
         <div>
@@ -363,8 +482,20 @@ export default function CommissionInvoice({ open, onOpenChange, inline = false, 
             <table className="w-full text-sm">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  {["Description", "Total Fee", "Commission %", "Commission Amt", "Tax", "Tax Amount", "Net Amount", ""].map((h) => (
-                    <th key={h} className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+                  {[
+                    "Description",
+                    "Total Fee",
+                    "Commission %",
+                    "Commission Amt",
+                    "Tax",
+                    "Tax Amount",
+                    "Net Amount",
+                    "",
+                  ].map((h) => (
+                    <th
+                      key={h}
+                      className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-gray-500"
+                    >
                       {h}
                     </th>
                   ))}
@@ -372,28 +503,45 @@ export default function CommissionInvoice({ open, onOpenChange, inline = false, 
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {items.map((item) => (
-                  <tr key={item.id} className="bg-white hover:bg-gray-50/50 transition-colors">
+                  <tr
+                    key={item.id}
+                    className="bg-white hover:bg-gray-50/50 transition-colors"
+                  >
                     <td className="px-3 py-2">
                       <Input
                         value={item.description}
-                        onChange={(e) => updateItem(item.id, "description", e.target.value)}
+                        onChange={(e) =>
+                          updateItem(item.id, "description", e.target.value)
+                        }
                         className="h-8 text-sm min-w-40"
                       />
                     </td>
                     <td className="px-3 py-2">
                       <Input
-                        type="number" step="0.01" min="0"
+                        type="number"
+                        step="0.01"
+                        min="0"
                         value={item.total_fee}
-                        onChange={(e) => updateItem(item.id, "total_fee", e.target.value)}
+                        onChange={(e) =>
+                          updateItem(item.id, "total_fee", e.target.value)
+                        }
                         className="h-8 text-sm w-28 text-right"
                       />
                     </td>
                     <td className="px-3 py-2">
                       <div className="flex items-center gap-1">
                         <Input
-                          type="number" step="0.01" min="0"
+                          type="number"
+                          step="0.01"
+                          min="0"
                           value={item.commission_percent}
-                          onChange={(e) => updateItem(item.id, "commission_percent", e.target.value)}
+                          onChange={(e) =>
+                            updateItem(
+                              item.id,
+                              "commission_percent",
+                              e.target.value,
+                            )
+                          }
                           className="h-8 text-sm w-16 text-right"
                         />
                         <span className="text-gray-400 text-xs">%</span>
@@ -401,9 +549,17 @@ export default function CommissionInvoice({ open, onOpenChange, inline = false, 
                     </td>
                     <td className="px-3 py-2">
                       <Input
-                        type="number" step="0.01" min="0"
+                        type="number"
+                        step="0.01"
+                        min="0"
                         value={item.commission_amount}
-                        onChange={(e) => updateItem(item.id, "commission_amount", e.target.value)}
+                        onChange={(e) =>
+                          updateItem(
+                            item.id,
+                            "commission_amount",
+                            e.target.value,
+                          )
+                        }
                         className="h-8 text-sm w-24 text-right"
                       />
                     </td>
@@ -417,27 +573,39 @@ export default function CommissionInvoice({ open, onOpenChange, inline = false, 
                         </SelectTrigger>
                         <SelectContent>
                           {taxOptions.map((t) => (
-                            <SelectItem key={t} value={t}>{t}</SelectItem>
+                            <SelectItem key={t} value={t}>
+                              {t}
+                            </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
                     </td>
                     <td className="px-3 py-2">
                       <Input
-                        type="number" step="0.01" min="0"
+                        type="number"
+                        step="0.01"
+                        min="0"
                         value={item.tax_amount}
-                        onChange={(e) => updateItem(item.id, "tax_amount", e.target.value)}
+                        onChange={(e) =>
+                          updateItem(item.id, "tax_amount", e.target.value)
+                        }
                         className="h-8 text-sm w-24 text-right"
                       />
                     </td>
                     <td className="px-3 py-2">
                       <span className="text-sm tabular-nums text-gray-700 px-2">
-                        {toCurrencyNumber(item.net_amount).toLocaleString("en-AU", { minimumFractionDigits: 2 })}
+                        {toCurrencyNumber(item.net_amount).toLocaleString(
+                          "en-AU",
+                          { minimumFractionDigits: 2 },
+                        )}
                       </span>
                     </td>
                     <td className="px-3 py-2">
                       {items.length > 1 && (
-                        <button onClick={() => removeItem(item.id)} className="text-gray-300 hover:text-red-400 transition-colors">
+                        <button
+                          onClick={() => removeItem(item.id)}
+                          className="text-gray-300 hover:text-red-400 transition-colors"
+                        >
                           <X className="w-4 h-4" />
                         </button>
                       )}
@@ -462,17 +630,26 @@ export default function CommissionInvoice({ open, onOpenChange, inline = false, 
           {/* Left: discount + net fee cards */}
           <div className="flex-1 space-y-4">
             <div className="flex items-center gap-3">
-              <Label className="text-xs whitespace-nowrap text-gray-600">Discount Given to Client:</Label>
+              <Label className="text-xs whitespace-nowrap text-gray-600">
+                Discount Given to Client:
+              </Label>
               <div className="flex items-center gap-1.5">
                 <Input
-                  type="number" step="0.01" min="0"
+                  type="number"
+                  step="0.01"
+                  min="0"
                   value={discountGiven}
                   onChange={(e) => setDiscountGiven(e.target.value)}
                   className="h-8 text-sm w-28 text-right"
                 />
                 <span className="text-xs text-gray-500">{currency}</span>
               </div>
-              <Input type="date" value={discountDate} onChange={(e) => setDiscountDate(e.target.value)} className="h-8 text-xs w-36" />
+              <Input
+                type="date"
+                value={discountDate}
+                onChange={(e) => setDiscountDate(e.target.value)}
+                className="h-8 text-xs w-36"
+              />
             </div>
 
             {/* Net Fee Received / Net Income display cards */}
@@ -480,13 +657,20 @@ export default function CommissionInvoice({ open, onOpenChange, inline = false, 
               <div className="rounded-xl border border-gray-200 p-4">
                 <p className="text-xs text-gray-500 mb-1">Net Fee Received</p>
                 <p className="text-3xl font-light text-gray-300 tabular-nums">
-                  {netFeeReceived.toLocaleString("en-AU", { minimumFractionDigits: 2 })}
+                  {netFeeReceived.toLocaleString("en-AU", {
+                    minimumFractionDigits: 2,
+                  })}
                 </p>
               </div>
               <div className="rounded-xl border border-gray-200 p-4">
                 <p className="text-xs text-gray-500 mb-1">Net Income</p>
-                <p className="text-3xl font-light tabular-nums" style={{ color: netIncome > 0 ? APP_BLUE : "#d1d5db" }}>
-                  {netIncome.toLocaleString("en-AU", { minimumFractionDigits: 2 })}
+                <p
+                  className="text-3xl font-light tabular-nums"
+                  style={{ color: netIncome > 0 ? APP_BLUE : "#d1d5db" }}
+                >
+                  {netIncome.toLocaleString("en-AU", {
+                    minimumFractionDigits: 2,
+                  })}
                 </p>
               </div>
             </div>
@@ -494,20 +678,37 @@ export default function CommissionInvoice({ open, onOpenChange, inline = false, 
 
           {/* Right: summary */}
           <div className="w-80 rounded-xl border border-gray-200 bg-gray-50/50 p-4">
-            <SummaryRow label="Total Fee" value={totalFee} currency={currency} />
-            <SummaryRow label="Commission Claimed" value={commissionClaimed} currency={currency} />
+            <SummaryRow
+              label="Total Fee"
+              value={totalFee}
+              currency={currency}
+            />
+            <SummaryRow
+              label="Commission Claimed"
+              value={commissionClaimed}
+              currency={currency}
+            />
             <SummaryRow label="Tax" value={taxTotal} currency={currency} />
-            <SummaryRow label="Net Fee Paid to Partner" value={netFeePaidToPartner} currency={currency} bold />
+            <SummaryRow
+              label="Net Fee Paid to Partner"
+              value={netFeePaidToPartner}
+              currency={currency}
+              bold
+            />
 
             <div className="mt-3 pt-3 border-t border-gray-200">
-              <Label className="text-xs text-gray-500">Select Payment Option</Label>
+              <Label className="text-xs text-gray-500">
+                Select Payment Option
+              </Label>
               <Select value={paymentOption} onValueChange={setPaymentOption}>
                 <SelectTrigger className="mt-1.5 h-8 text-xs w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   {["ACT Trans Details", "Bank Transfer", "Cheque"].map((o) => (
-                    <SelectItem key={o} value={o}>{o}</SelectItem>
+                    <SelectItem key={o} value={o}>
+                      {o}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -532,27 +733,14 @@ export default function CommissionInvoice({ open, onOpenChange, inline = false, 
           </Button>
           <Button
             type="button"
-            variant="outline"
-            disabled={saveMutation.isPending}
-            style={{ borderColor: APP_BLUE, color: APP_BLUE }}
-          >
-            Save & Preview
-          </Button>
-          <Button
-            type="button"
             onClick={() => saveMutation.mutate()}
             disabled={saveMutation.isPending}
-            style={{ backgroundColor: APP_BLUE }}
+            style={{ backgroundColor: APP_BLUE, color: "white" }}
           >
-            {saveMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
+            {saveMutation.isPending && (
+              <Loader2 className="h-4 w-4 animate-spin mr-1" />
+            )}
             Save
-          </Button>
-          <Button
-            type="button"
-            disabled={saveMutation.isPending}
-            className="bg-green-600 hover:bg-green-700 text-white"
-          >
-            Save & Send
           </Button>
         </div>
       </div>

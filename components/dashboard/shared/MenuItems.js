@@ -134,6 +134,11 @@ export const railSections = [
             path: "/dashboard/invoice",
           },
           {
+            icon: Receipt,
+            label: "Group Invoices",
+            path: "/dashboard/group-invoice",
+          },
+          {
             icon: CreditCard,
             label: "Payments",
             path: "/dashboard/payments",

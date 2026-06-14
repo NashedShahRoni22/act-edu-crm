@@ -3,8 +3,19 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAppContext } from "@/context/context";
 import { fetchWithToken, postWithToken } from "@/helpers/api";
-import { CheckCircle, ArrowRight } from "lucide-react";
+import { CheckCircle } from "lucide-react";
 import toast from "react-hot-toast";
+import { useState } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 
 const APP_BLUE = "#3B4CB8";
 
@@ -12,7 +23,10 @@ function TimelineSkeleton() {
   return (
     <div className="space-y-0 animate-pulse">
       {Array.from({ length: 4 }).map((_, idx) => (
-        <div key={idx} className="flex items-center gap-3 px-4 py-3 border-b border-gray-100">
+        <div
+          key={idx}
+          className="flex items-center gap-3 px-4 py-3 border-b border-gray-100"
+        >
           <div className="w-6 h-6 rounded-full bg-gray-200 shrink-0" />
           <div className="h-4 w-1/3 bg-gray-100 rounded" />
         </div>
@@ -26,7 +40,13 @@ function StageIcon({ status, isCurrent }) {
     return (
       <div className="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center shrink-0">
         <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-          <path d="M2 6l3 3 5-5" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+          <path
+            d="M2 6l3 3 5-5"
+            stroke="white"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
         </svg>
       </div>
     );
@@ -37,7 +57,10 @@ function StageIcon({ status, isCurrent }) {
         className="w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0"
         style={{ borderColor: APP_BLUE, backgroundColor: "white" }}
       >
-        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: APP_BLUE }} />
+        <div
+          className="w-2 h-2 rounded-full"
+          style={{ backgroundColor: APP_BLUE }}
+        />
       </div>
     );
   }
@@ -51,6 +74,10 @@ export default function ApplicationActivityTab({ applicationId, contactId }) {
   const { accessToken } = useAppContext();
   const queryClient = useQueryClient();
 
+  const [revertDialogOpen, setRevertDialogOpen] = useState(false);
+  const [revertStageId, setRevertStageId] = useState(null);
+  const [revertNotes, setRevertNotes] = useState("");
+
   const { data, isLoading, isError } = useQuery({
     queryKey: [`/applications/${applicationId}/timeline`, accessToken],
     queryFn: fetchWithToken,
@@ -58,16 +85,32 @@ export default function ApplicationActivityTab({ applicationId, contactId }) {
   });
 
   const changeStagesMutation = useMutation({
-    mutationFn: async (newStageId) => {
+    mutationFn: async ({ newStageId, notes }) => {
       const formData = new FormData();
       formData.append("_method", "PUT");
       formData.append("new_stage_id", newStageId);
-      return postWithToken(`/applications/${applicationId}/change-stage`, formData, accessToken);
+      if (notes) {
+        formData.append("notes", notes);
+      }
+      return postWithToken(
+        `/applications/${applicationId}/change-stage`,
+        formData,
+        accessToken,
+      );
     },
-    onSuccess: () => {
-      toast.success("Stage updated successfully");
-      queryClient.invalidateQueries({ queryKey: [`/applications/${applicationId}/timeline`, accessToken] });
-      queryClient.invalidateQueries({ queryKey: [`/contacts/${contactId}/applications`] });
+    onSuccess: (res) => {
+      console.log(res);
+      if (res?.status === "success") {
+        toast.success("Stage updated successfully");
+        queryClient.invalidateQueries({
+          queryKey: [`/applications/${applicationId}/timeline`, accessToken],
+        });
+        queryClient.invalidateQueries({
+          queryKey: [`/contacts/${contactId}/applications`],
+        });
+      } else {
+        toast.error(res?.message || "Failed to update status");
+      }
     },
     onError: (error) => {
       toast.error(error?.message || "Failed to update stage");
@@ -78,12 +121,20 @@ export default function ApplicationActivityTab({ applicationId, contactId }) {
     mutationFn: async () => {
       const formData = new FormData();
       formData.append("_method", "PUT");
-      return postWithToken(`/applications/${applicationId}/complete`, formData, accessToken);
+      return postWithToken(
+        `/applications/${applicationId}/complete`,
+        formData,
+        accessToken,
+      );
     },
     onSuccess: () => {
       toast.success("Application marked as complete");
-      queryClient.invalidateQueries({ queryKey: [`/applications/${applicationId}/timeline`, accessToken] });
-      queryClient.invalidateQueries({ queryKey: [`/contacts/${contactId}/applications`] });
+      queryClient.invalidateQueries({
+        queryKey: [`/applications/${applicationId}/timeline`, accessToken],
+      });
+      queryClient.invalidateQueries({
+        queryKey: [`/contacts/${contactId}/applications`],
+      });
     },
     onError: (error) => {
       toast.error(error?.message || "Failed to mark as complete");
@@ -112,25 +163,27 @@ export default function ApplicationActivityTab({ applicationId, contactId }) {
   }
 
   const firstIncompleteIndex = timeline.findIndex(
-    (item) => item.status?.toLowerCase() !== "completed"
+    (item) => item.status?.toLowerCase() !== "completed",
   );
 
   // Current stage = the one explicitly marked "current" (or first incomplete as fallback)
   const currentStageIndex = timeline.findIndex(
-    (item) => item.status?.toLowerCase() === "current"
+    (item) => item.status?.toLowerCase() === "current",
   );
 
   // If no stage is "current" yet (all pending, fresh application) — next to activate is index 0
   // Otherwise next stage to move to is currentStageIndex + 1
   const nextStage =
     currentStageIndex === -1
-      ? timeline[0]                          // fresh: activate first stage
-      : timeline[currentStageIndex + 1] ?? null; // proceed: move to next
+      ? timeline[0] // fresh: activate first stage
+      : (timeline[currentStageIndex + 1] ?? null); // proceed: move to next
 
   const isFinalStageCurrent =
     currentStageIndex !== -1 && currentStageIndex === timeline.length - 1;
 
-  const isAllPending = timeline.every((item) => item.status?.toLowerCase() === "pending");
+  const isAllPending = timeline.every(
+    (item) => item.status?.toLowerCase() === "pending",
+  );
 
   const previousStage =
     currentStageIndex > 0 ? timeline[currentStageIndex - 1] : null;
@@ -145,8 +198,12 @@ export default function ApplicationActivityTab({ applicationId, contactId }) {
         {progress !== null && (
           <div className="flex-1">
             <div className="flex items-center justify-between mb-1.5">
-              <span className="text-xs text-gray-500 uppercase tracking-wide">Progress</span>
-              <span className="text-xs font-semibold text-gray-700">{progress}%</span>
+              <span className="text-xs text-gray-500 uppercase tracking-wide">
+                Progress
+              </span>
+              <span className="text-xs font-semibold text-gray-700">
+                {progress}%
+              </span>
             </div>
             <div className="h-1.5 rounded-full bg-gray-200 overflow-hidden">
               <div
@@ -161,7 +218,9 @@ export default function ApplicationActivityTab({ applicationId, contactId }) {
         <div className="shrink-0">
           {isComplete ? (
             /* Completed — hide buttons, show completion badge */
-            <div className="text-xs text-green-600 font-semibold">✓ Completed</div>
+            <div className="text-xs text-green-600 font-semibold">
+              ✓ Completed
+            </div>
           ) : isFinalStageCurrent ? (
             /* Mark as Done — on last stage */
             <button
@@ -177,7 +236,11 @@ export default function ApplicationActivityTab({ applicationId, contactId }) {
             <div className="flex items-center gap-2">
               {previousStage && (
                 <button
-                  onClick={() => changeStagesMutation.mutate(previousStage.stage_id)}
+                  onClick={() => {
+                    setRevertStageId(previousStage.stage_id);
+                    setRevertNotes("");
+                    setRevertDialogOpen(true);
+                  }}
                   disabled={changeStagesMutation.isPending}
                   className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 disabled:opacity-50 transition-colors whitespace-nowrap"
                 >
@@ -186,7 +249,9 @@ export default function ApplicationActivityTab({ applicationId, contactId }) {
               )}
               {nextStage ? (
                 <button
-                  onClick={() => changeStagesMutation.mutate(nextStage.stage_id)}
+                  onClick={() =>
+                    changeStagesMutation.mutate({ newStageId: nextStage.stage_id })
+                  }
                   disabled={changeStagesMutation.isPending}
                   className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-semibold text-white transition-opacity disabled:opacity-50 whitespace-nowrap"
                   style={{ backgroundColor: APP_BLUE }}
@@ -194,9 +259,7 @@ export default function ApplicationActivityTab({ applicationId, contactId }) {
                   {changeStagesMutation.isPending ? (
                     "Moving..."
                   ) : (
-                    <>
-                      Proceed →
-                    </>
+                    <>Proceed →</>
                   )}
                 </button>
               ) : null}
@@ -223,11 +286,19 @@ export default function ApplicationActivityTab({ applicationId, contactId }) {
                 style={isHighlighted ? { backgroundColor: "#EEF1FC" } : {}}
               >
                 {/* Connector line + icon */}
-                <div className="flex flex-col items-center self-stretch shrink-0" style={{ width: 24 }}>
+                <div
+                  className="flex flex-col items-center self-stretch shrink-0"
+                  style={{ width: 24 }}
+                >
                   <div
                     className="w-px flex-1"
                     style={{
-                      backgroundColor: index === 0 ? "transparent" : isCompleted ? "#22c55e" : "#e5e7eb",
+                      backgroundColor:
+                        index === 0
+                          ? "transparent"
+                          : isCompleted
+                            ? "#22c55e"
+                            : "#e5e7eb",
                       minHeight: 8,
                     }}
                   />
@@ -235,7 +306,11 @@ export default function ApplicationActivityTab({ applicationId, contactId }) {
                   <div
                     className="w-px flex-1"
                     style={{
-                      backgroundColor: isLast ? "transparent" : isCompleted ? "#22c55e" : "#e5e7eb",
+                      backgroundColor: isLast
+                        ? "transparent"
+                        : isCompleted
+                          ? "#22c55e"
+                          : "#e5e7eb",
                       minHeight: 8,
                     }}
                   />
@@ -245,7 +320,11 @@ export default function ApplicationActivityTab({ applicationId, contactId }) {
                 <span
                   className="text-sm flex-1"
                   style={{
-                    color: isHighlighted ? APP_BLUE : isCompleted ? "#374151" : "#9ca3af",
+                    color: isHighlighted
+                      ? APP_BLUE
+                      : isCompleted
+                        ? "#374151"
+                        : "#9ca3af",
                     fontWeight: isHighlighted || isCompleted ? 500 : 400,
                   }}
                 >
@@ -254,7 +333,9 @@ export default function ApplicationActivityTab({ applicationId, contactId }) {
 
                 {/* Date badge for completed */}
                 {isCompleted && item.log_date && (
-                  <span className="text-xs text-gray-400 shrink-0">{item.log_date}</span>
+                  <span className="text-xs text-gray-400 shrink-0">
+                    {item.log_date}
+                  </span>
                 )}
               </div>
 
@@ -262,15 +343,72 @@ export default function ApplicationActivityTab({ applicationId, contactId }) {
               {isCurrent && item.log_text && (
                 <div className="flex items-start gap-3 px-4 py-2.5 bg-white border-b border-gray-100">
                   <div className="shrink-0 mt-0.5" style={{ width: 24 }}>
-                    <div className="mx-auto w-2.5 h-2.5 rounded-full" style={{ backgroundColor: APP_BLUE }} />
+                    <div
+                      className="mx-auto w-2.5 h-2.5 rounded-full"
+                      style={{ backgroundColor: APP_BLUE }}
+                    />
                   </div>
-                  <p className="text-xs text-gray-500 leading-5">{item.log_text}</p>
+                  <p className="text-xs text-gray-500 leading-5">
+                    {item.log_text}
+                  </p>
                 </div>
               )}
             </div>
           );
         })}
       </div>
+
+      {/* Revert Dialog */}
+      <Dialog open={revertDialogOpen} onOpenChange={setRevertDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Revert Stage</DialogTitle>
+            <DialogDescription>
+              Please provide a note for reverting to the previous stage.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Textarea
+              placeholder="Enter your note here..."
+              value={revertNotes}
+              onChange={(e) => setRevertNotes(e.target.value)}
+              rows={4}
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setRevertDialogOpen(false)}
+              disabled={changeStagesMutation.isPending}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={() => {
+                changeStagesMutation.mutate(
+                  {
+                    newStageId: revertStageId,
+                    notes: revertNotes,
+                  },
+                  {
+                    onSuccess: (res) => {
+                      if (res?.status === "success") {
+                        setRevertDialogOpen(false);
+                      }
+                    },
+                  }
+                );
+              }}
+              disabled={changeStagesMutation.isPending || !revertNotes.trim()}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              {changeStagesMutation.isPending ? "Reverting..." : "Revert"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </section>
   );
 }

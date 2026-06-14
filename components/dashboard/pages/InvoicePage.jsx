@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronLeft, ChevronRight, Plus, Search, ReceiptText } from "lucide-react";
+import { Plus, Search, ReceiptText } from "lucide-react";
 import Link from "next/link";
 
 import SectionContainer from "../../../components/dashboard/SectionContainer";
@@ -88,7 +88,7 @@ export default function InvoicePage() {
   const currentPage = paginationData?.current_page || 1;
   const totalPages = paginationData?.last_page || 1;
   const totalItems = paginationData?.total || 0;
-  
+
   const paginationInfo = {
     currentPage,
     lastPage: totalPages,
@@ -115,8 +115,12 @@ export default function InvoicePage() {
     <SectionContainer>
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">Invoices</h1>
-          <p className="text-sm text-gray-500 mt-1">Track invoice status, due dates, and outstanding balances.</p>
+          <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">
+            Invoices
+          </h1>
+          <p className="text-sm text-gray-500 mt-1">
+            Track invoice status, due dates, and outstanding balances.
+          </p>
         </div>
 
         <div className="bg-white border border-gray-200 rounded-xl p-4">
@@ -157,7 +161,10 @@ export default function InvoicePage() {
                 />
               </div>
 
-              <Popover open={createPopoverOpen} onOpenChange={setCreatePopoverOpen}>
+              <Popover
+                open={createPopoverOpen}
+                onOpenChange={setCreatePopoverOpen}
+              >
                 <PopoverTrigger asChild>
                   <button
                     type="button"
@@ -197,37 +204,66 @@ export default function InvoicePage() {
         </div>
 
         {isError ? (
-          <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-700">Failed to load invoices.</div>
+          <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-700">
+            Failed to load invoices.
+          </div>
         ) : (
           <div>
             {createMode ? (
               <div className="bg-white border border-gray-200 rounded-xl p-4">
                 {createMode === "commission" ? (
-                  <CommissionInvoice key={createMode} inline onClose={() => setCreateMode(null)} />
+                  <CommissionInvoice
+                    key={createMode}
+                    inline
+                    onClose={() => setCreateMode(null)}
+                  />
                 ) : (
-                  <GeneralInvoice key={createMode} inline onClose={() => setCreateMode(null)} />
+                  <GeneralInvoice
+                    key={createMode}
+                    inline
+                    onClose={() => setCreateMode(null)}
+                  />
                 )}
               </div>
             ) : (
-              <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-                <div className="overflow-x-auto">
+              <div>
+                <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
                   <table className="w-full min-w-245">
                     <thead>
                       <tr className="bg-gray-50 border-b border-gray-200">
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">Invoice</th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">Client</th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">Partner</th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">Invoice Date</th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">Due Date</th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">Grand Total</th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">Amount Due</th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">Status</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                          Invoice
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                          Client
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                          Partner
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                          Invoice Date
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                          Due Date
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                          Grand Total
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                          Amount Due
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                          Status
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
                       {invoicesList.length === 0 ? (
                         <tr>
-                          <td colSpan={8} className="px-4 py-10 text-center text-sm text-gray-500">
+                          <td
+                            colSpan={8}
+                            className="px-4 py-10 text-center text-sm text-gray-500"
+                          >
                             <div className="flex flex-col items-center gap-2">
                               <ReceiptText className="w-8 h-8 text-gray-300" />
                               <p>No invoices found</p>
@@ -236,23 +272,56 @@ export default function InvoicePage() {
                         </tr>
                       ) : (
                         invoicesList.map((invoice) => {
-                          const clientName = [invoice?.client?.first_name, invoice?.client?.last_name].filter(Boolean).join(" ");
+                          const clientName = [
+                            invoice?.client?.first_name,
+                            invoice?.client?.last_name,
+                          ]
+                            .filter(Boolean)
+                            .join(" ");
                           return (
-                            <tr key={invoice.id} className="border-b border-gray-100 last:border-b-0 hover:bg-gray-50/70 transition-colors">
+                            <tr
+                              key={invoice.id}
+                              className="border-b border-gray-100 last:border-b-0 hover:bg-gray-50/70 transition-colors"
+                            >
                               <td className="px-4 py-3">
-                                <Link href={`/dashboard/invoice/${invoice.id}`} className="text-sm font-semibold text-[#3B4CB8] hover:underline">
+                                <Link
+                                  href={`/dashboard/invoice/${invoice.id}`}
+                                  className="text-sm font-semibold text-[#3B4CB8] hover:underline"
+                                >
                                   {invoice.invoice_number || "-"}
                                 </Link>
-                                <p className="text-xs text-gray-500 mt-0.5">{invoice.invoice_type || "-"}</p>
+                                <p className="text-xs text-gray-500 mt-0.5">
+                                  {invoice.invoice_type || "-"}
+                                </p>
                               </td>
-                              <td className="px-4 py-3 text-sm text-gray-700">{clientName || "-"}</td>
-                              <td className="px-4 py-3 text-sm text-gray-700">{invoice?.partner?.name || "-"}</td>
-                              <td className="px-4 py-3 text-sm text-gray-700">{formatDate(invoice.invoice_date)}</td>
-                              <td className="px-4 py-3 text-sm text-gray-700">{formatDate(invoice.due_date)}</td>
-                              <td className="px-4 py-3 text-sm font-medium text-gray-900">{formatMoney(invoice.currency, invoice.grand_total)}</td>
-                              <td className="px-4 py-3 text-sm font-medium text-gray-900">{formatMoney(invoice.currency, invoice.amount_due)}</td>
+                              <td className="px-4 py-3 text-sm text-gray-700">
+                                {clientName || "-"}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-gray-700">
+                                {invoice?.partner?.name || "-"}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-gray-700">
+                                {formatDate(invoice.invoice_date)}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-gray-700">
+                                {formatDate(invoice.due_date)}
+                              </td>
+                              <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                                {formatMoney(
+                                  invoice.currency,
+                                  invoice.grand_total,
+                                )}
+                              </td>
+                              <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                                {formatMoney(
+                                  invoice.currency,
+                                  invoice.amount_due,
+                                )}
+                              </td>
                               <td className="px-4 py-3">
-                                <span className="inline-flex px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">{invoice.status || "-"}</span>
+                                <span className="inline-flex px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
+                                  {invoice.status || "-"}
+                                </span>
                               </td>
                             </tr>
                           );
@@ -262,7 +331,11 @@ export default function InvoicePage() {
                   </table>
                 </div>
 
-                <Pagination {...paginationInfo} onPageChange={setPage} noun="invoices" />
+                <Pagination
+                  {...paginationInfo}
+                  onPageChange={setPage}
+                  noun="invoices"
+                />
               </div>
             )}
           </div>
