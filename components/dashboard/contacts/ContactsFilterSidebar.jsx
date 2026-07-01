@@ -12,7 +12,6 @@ const SOURCES = [
   "Email",
   "LinkedIn",
   "Instagram",
-  "Other",
 ];
 
 export default function ContactsFilterSidebar({
@@ -44,7 +43,9 @@ export default function ContactsFilterSidebar({
           <div className="space-y-4">
             {/* Search Option */}
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-gray-500">Search</label>
+              <label className="text-xs font-medium text-gray-500">
+                Search
+              </label>
               <div className="relative">
                 <input
                   type="text"
@@ -58,29 +59,43 @@ export default function ContactsFilterSidebar({
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-gray-500">Status</label>
+              <label className="text-xs font-medium text-gray-500">
+                Status
+              </label>
               <div className="relative">
                 <select
                   value={selectedStatus}
                   onChange={handleFilterChange(setSelectedStatus)}
                   className="w-full appearance-none pl-3 pr-10 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 bg-gray-50 hover:bg-white transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#3B4CB8]/50"
                 >
-                  <option value="all">All Status</option>
+                  <option value="all">All Contacts</option>
                   <option value="Lead">Lead</option>
-                  <option value="Archived">Archived</option>
-                  <option value="Client">Client</option>
                   <option value="Prospect">Prospect</option>
+                  <option value="Client">Client</option>
+                  <option value="Archived">Archived</option>
                 </select>
                 <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                  <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  <svg
+                    className="w-4 h-4 text-gray-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 9l-7 7-7-7"
+                    />
                   </svg>
                 </div>
               </div>
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-gray-500">Source</label>
+              <label className="text-xs font-medium text-gray-500">
+                Source
+              </label>
               <div className="relative">
                 <select
                   value={selectedSource}
@@ -88,7 +103,6 @@ export default function ContactsFilterSidebar({
                   className="w-full appearance-none pl-3 pr-10 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 bg-gray-50 hover:bg-white transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#3B4CB8]/50"
                 >
                   <option value="all">All Sources</option>
-                  <option value="System">System</option>
                   {SOURCES.map((source) => (
                     <option key={source} value={source}>
                       {source}
@@ -96,24 +110,32 @@ export default function ContactsFilterSidebar({
                   ))}
                 </select>
                 <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                  <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  <svg
+                    className="w-4 h-4 text-gray-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 9l-7 7-7-7"
+                    />
                   </svg>
                 </div>
               </div>
             </div>
           </div>
         </div>
-        
+
         <div className="pt-4 border-t border-gray-100 flex flex-col gap-2">
           <Link href="/dashboard/add-client">
             <button className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-[#3B4CB8] text-white rounded-lg text-sm font-medium hover:bg-[#2F3C94] transition-colors shadow-sm">
               <Plus className="w-4 h-4" /> Add Client
             </button>
           </Link>
-          <button
-            className="w-full flex items-center justify-center gap-2 px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-          >
+          <button className="w-full flex items-center justify-center gap-2 px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
             <Upload className="w-4 h-4" /> Export
           </button>
         </div>

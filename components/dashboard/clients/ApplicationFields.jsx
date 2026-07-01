@@ -1,12 +1,209 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { Briefcase, Plus, X, GitBranch, Flag, ChevronDown } from "lucide-react";
+import { Briefcase, Plus, X } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { useAppContext } from "@/context/context";
+import { fetchWithToken } from "@/helpers/api";
+
+function ApplicationItem({
+  app,
+  index,
+  updateApplication,
+  removeApplication,
+  canRemove,
+}) {
+  const { accessToken } = useAppContext();
+
+  const { data: workflowsData, isLoading: isWorkflowsLoading } = useQuery({
+    queryKey: ["/workflows?with=stages", accessToken],
+    queryFn: fetchWithToken,
+    enabled: !!accessToken,
+  });
+
+  const { data: partnersData, isLoading: isPartnersLoading } = useQuery({
+    queryKey: [`/partners?workflow_id=${app.workflow_id}`, accessToken],
+    queryFn: fetchWithToken,
+    enabled: !!accessToken && !!app.workflow_id,
+  });
+
+  const { data: branchesData, isLoading: isBranchesLoading } = useQuery({
+    queryKey: [
+      app.partner_id ? `/partners/${app.partner_id}/branches` : "/partners/0/branches",
+      accessToken,
+    ],
+    queryFn: fetchWithToken,
+    enabled: !!accessToken && !!app.partner_id,
+  });
+
+  const { data: productsData, isLoading: isProductsLoading } = useQuery({
+    queryKey: [
+      app.partner_id ? `/products?partner_id=${app.partner_id}` : "/products?partner_id=0",
+      accessToken,
+    ],
+    queryFn: fetchWithToken,
+    enabled: !!accessToken && !!app.partner_id,
+  });
+
+  const workflows = workflowsData?.data || [];
+  const partners = partnersData?.data || [];
+  const branches = branchesData?.data || [];
+  const products = productsData?.data || [];
+
+  const selectedWorkflow = workflows.find((w) => w.id.toString() === app.workflow_id.toString());
+  const stages = selectedWorkflow?.stages || [];
+
+  const handleWorkflowChange = (e) => {
+    updateApplication(index, "workflow_id", e.target.value);
+    updateApplication(index, "current_stage_id", "");
+    updateApplication(index, "partner_id", "");
+    updateApplication(index, "partner_branch_id", "");
+    updateApplication(index, "product_id", "");
+  };
+
+  const handlePartnerChange = (e) => {
+    updateApplication(index, "partner_id", e.target.value);
+    updateApplication(index, "partner_branch_id", "");
+    updateApplication(index, "product_id", "");
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, height: 0 }}
+      animate={{ opacity: 1, height: "auto" }}
+      exit={{ opacity: 0, height: 0 }}
+      className="p-4 border-2 border-gray-200 rounded-lg relative"
+    >
+      {canRemove && (
+        <button
+          type="button"
+          onClick={() => removeApplication(index)}
+          className="absolute top-2 right-2 p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+        >
+          <X className="w-4 h-4" />
+        </button>
+      )}
+
+      <div className="mb-3">
+        <span className="text-sm font-semibold text-gray-900">
+          Application #{index + 1}
+        </span>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Workflow Selection */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Workflow
+          </label>
+          <select
+            value={app.workflow_id}
+            onChange={handleWorkflowChange}
+            className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm disabled:bg-gray-50 disabled:text-gray-400"
+            disabled={isWorkflowsLoading}
+          >
+            <option value="">{isWorkflowsLoading ? "Loading workflows..." : "Select workflow"}</option>
+            {workflows.map((w) => (
+              <option key={w.id} value={w.id}>
+                {w.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Stage Selection */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Current Stage
+          </label>
+          <select
+            value={app.current_stage_id}
+            onChange={(e) => updateApplication(index, "current_stage_id", e.target.value)}
+            className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm disabled:bg-gray-50 disabled:text-gray-400"
+            disabled={!app.workflow_id}
+          >
+            <option value="">{!app.workflow_id ? "Select workflow first" : "Select stage"}</option>
+            {stages.map((stage) => (
+              <option key={stage.id} value={stage.id}>
+                {stage.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Partner Selection */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Partner
+          </label>
+          <select
+            value={app.partner_id}
+            onChange={handlePartnerChange}
+            className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm disabled:bg-gray-50 disabled:text-gray-400"
+            disabled={!app.workflow_id || isPartnersLoading}
+          >
+            <option value="">
+              {!app.workflow_id ? "Select workflow first" : isPartnersLoading ? "Loading partners..." : "Select partner"}
+            </option>
+            {partners.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Partner Branch Selection */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Partner Branch
+          </label>
+          <select
+            value={app.partner_branch_id}
+            onChange={(e) => updateApplication(index, "partner_branch_id", e.target.value)}
+            className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm disabled:bg-gray-50 disabled:text-gray-400"
+            disabled={!app.partner_id || isBranchesLoading}
+          >
+            <option value="">
+              {!app.partner_id ? "Select partner first" : isBranchesLoading ? "Loading branches..." : "Select branch"}
+            </option>
+            {branches.map((branch) => (
+              <option key={branch.id} value={branch.id}>
+                {branch.name || `Branch #${branch.id}`}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Product Selection */}
+        <div className="md:col-span-2">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Product
+          </label>
+          <select
+            value={app.product_id}
+            onChange={(e) => updateApplication(index, "product_id", e.target.value)}
+            className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm disabled:bg-gray-50 disabled:text-gray-400"
+            disabled={!app.partner_id || isProductsLoading}
+          >
+            <option value="">
+              {!app.partner_id ? "Select partner first" : isProductsLoading ? "Loading products..." : "Select product"}
+            </option>
+            {products.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
 
 export default function ApplicationFields({
   applications,
   setApplications,
-  services,
   addApplication,
   removeApplication,
   updateApplication,
@@ -38,145 +235,14 @@ export default function ApplicationFields({
       <div className="space-y-4">
         <AnimatePresence>
           {applications.map((app, index) => (
-            <motion.div
+            <ApplicationItem
               key={index}
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              className="p-4 border-2 border-gray-200 rounded-lg relative"
-            >
-              {/* Remove button */}
-              {applications.length > 1 && (
-                <button
-                  type="button"
-                  onClick={() => removeApplication(index)}
-                  className="absolute top-2 right-2 p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              )}
-
-              <div className="mb-3">
-                <span className="text-sm font-semibold text-gray-900">
-                  Application #{index + 1}
-                </span>
-              </div>
-
-              <div className="grid grid-cols-1 gap-4">
-                {/* Service Selection */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Service / Application{" "}
-                    <span className="text-red-500">*</span>
-                  </label>
-                  <div className="relative">
-                    <Briefcase className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                    <select
-                      value={app.unique_id || ""}
-                      onChange={(e) => {
-                        const selectedService = services.find(
-                          (s) => s.unique_id === e.target.value,
-                        );
-                        if (selectedService) {
-                          const updatedApps = [...applications];
-                          updatedApps[index] = {
-                            ...updatedApps[index],
-                            unique_id: selectedService.unique_id,
-                            product_id: selectedService.product_id,
-                            partner_id: selectedService.partner_id,
-                            partner_branch_id:
-                              selectedService.partner_branch_id,
-                            workflow_id: "",
-                            current_stage_id: "",
-                          };
-                          setApplications(updatedApps);
-                        }
-                      }}
-                      className="w-full pl-10 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#3B4CB8]/50 focus:border-[#3B4CB8]"
-                      required
-                    >
-                      <option value="">Select Service</option>
-                      {services.map((service) => (
-                        <option
-                          key={service.unique_id}
-                          value={service.unique_id}
-                        >
-                          {service.display_label}
-                        </option>
-                      ))}
-                    </select>
-                    <ChevronDown className="w-4 h-4 text-gray-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                  </div>
-                </div>
-
-                {/* Workflow Selection */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Workflow <span className="text-red-500">*</span>
-                  </label>
-                  <div className="relative">
-                    <GitBranch className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                    <select
-                      value={app.workflow_id}
-                      onChange={(e) =>
-                        updateApplication(index, "workflow_id", e.target.value)
-                      }
-                      disabled={!app.unique_id}
-                      className="w-full pl-10 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#3B4CB8]/50 focus:border-[#3B4CB8] disabled:bg-gray-100 disabled:cursor-not-allowed"
-                      required
-                    >
-                      <option value="">Select Workflow</option>
-                      {app.unique_id &&
-                        services
-                          .find((s) => s.unique_id === app.unique_id)
-                          ?.available_workflows.map((workflow) => (
-                            <option key={workflow.id} value={workflow.id}>
-                              {workflow.name}
-                            </option>
-                          ))}
-                    </select>
-                    <ChevronDown className="w-4 h-4 text-gray-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                  </div>
-                </div>
-
-                {/* Stage Selection */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Current Stage <span className="text-red-500">*</span>
-                  </label>
-                  <div className="relative">
-                    <Flag className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                    <select
-                      value={app.current_stage_id}
-                      onChange={(e) =>
-                        updateApplication(
-                          index,
-                          "current_stage_id",
-                          e.target.value,
-                        )
-                      }
-                      disabled={!app.workflow_id}
-                      className="w-full pl-10 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#3B4CB8]/50 focus:border-[#3B4CB8] disabled:bg-gray-100 disabled:cursor-not-allowed"
-                      required
-                    >
-                      <option value="">Select Stage</option>
-                      {app.workflow_id &&
-                        services
-                          .find((s) => s.unique_id === app.unique_id)
-                          ?.available_workflows.find(
-                            (w) => w.id == app.workflow_id,
-                          )
-                          ?.stages.map((stage) => (
-                            <option key={stage.id} value={stage.id}>
-                              {stage.name}
-                            </option>
-                          ))}
-                    </select>
-                    <ChevronDown className="w-4 h-4 text-gray-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                  </div>
-                </div>
-              </div>
-            </motion.div>
+              app={app}
+              index={index}
+              updateApplication={updateApplication}
+              removeApplication={removeApplication}
+              canRemove={applications.length > 1}
+            />
           ))}
         </AnimatePresence>
       </div>

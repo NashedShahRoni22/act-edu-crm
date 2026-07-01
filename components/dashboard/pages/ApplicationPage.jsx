@@ -6,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { Search, FileText, User, GitBranch, BookOpen } from "lucide-react";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 const PAGE_SIZE = 10;
 
@@ -70,6 +71,7 @@ function Avatar({ first, last }) {
 }
 
 export default function ApplicationPage() {
+  const router = useRouter();
   const { accessToken } = useAppContext();
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -194,7 +196,8 @@ export default function ApplicationPage() {
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: index * 0.03 }}
-                      className="hover:bg-gray-50 transition-colors"
+                      onClick={() => router.push(`/dashboard/contacts/${contact?.id}`)}
+                      className="hover:bg-gray-50 transition-colors cursor-pointer"
                     >
                       {/* Contact */}
                       <td className="px-6 py-4">

@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { usePathname } from "next/navigation";
+import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import SidebarContent from "./SidebarContent";
 import { useAppContext } from "@/context/context";
 import { railSections } from "./MenuItems";
@@ -40,11 +41,10 @@ const SIDEBAR_VARS = `
 `;
 
 // ── RailItem ──────────────────────────────────────────────────────────
-function RailItem({ section, isActive, onClick, onMouseEnter }) {
+function RailItem({ section, isActive, onClick }) {
   return (
     <button
       onClick={onClick}
-      onMouseEnter={onMouseEnter}
       title={section.label}
       className={`
         w-10 h-10 rounded flex flex-col items-center justify-center gap-1 mt-4`}
@@ -80,8 +80,8 @@ export default function Sidebar({ isOpen, setIsOpen }) {
   const permissions = data?.data || [];
   // console.log(permissions);
 
-  const [activeSectionKey, setActiveSectionKey] = useState(
-    () => getActiveSectionKey(pathname)
+  const [activeSectionKey, setActiveSectionKey] = useState(() =>
+    getActiveSectionKey(pathname),
   );
   const [panelOpen, setPanelOpen] = useState(true);
 
@@ -95,22 +95,19 @@ export default function Sidebar({ isOpen, setIsOpen }) {
     setIsOpen(false);
   }, [pathname, setIsOpen]);
 
-  // Handle panel open/close on hover
-  const handleMouseEnter = useCallback(() => {
-    setPanelOpen(true);
+  // Handle rail click: switch section, and toggle panel open/closed.
+  // - Clicking the already-active section toggles the panel.
+  // - Clicking a different section switches to it and ensures panel is open.
+  const handleRailClick = useCallback((key) => {
+    setActiveSectionKey((prevKey) => {
+      if (prevKey === key) {
+        setPanelOpen((p) => !p);
+      } else {
+        setPanelOpen(true);
+      }
+      return key;
+    });
   }, []);
-
-  const handleMouseLeave = useCallback(() => {
-    setPanelOpen(false);
-  }, []);
-
-  const handleRailClick = useCallback(
-    (key) => {
-      setActiveSectionKey(key);
-      setPanelOpen(true);
-    },
-    []
-  );
 
   const togglePanel = useCallback(() => setPanelOpen((p) => !p), []);
 
@@ -129,9 +126,27 @@ export default function Sidebar({ isOpen, setIsOpen }) {
           section={section}
           isActive={activeSectionKey === section.key}
           onClick={() => handleRailClick(section.key)}
-          onMouseEnter={() => handleRailClick(section.key)}
         />
       ))}
+
+      {/* Expand button — only shown when the panel is collapsed */}
+      {!panelOpen ? (
+        <button
+          onClick={togglePanel}
+          title="Expand sidebar"
+          className="w-10 h-10 rounded flex items-center justify-center mt-4 text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+        >
+          <PanelLeftOpen className="w-5 h-5" strokeWidth={1.75} />
+        </button>
+      ) : (
+        <button
+          onClick={togglePanel}
+          title="Expand sidebar"
+          className="w-10 h-10 rounded flex items-center justify-center mt-4 text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+        >
+          <PanelLeftClose className="w-5 h-5" strokeWidth={1.75} />
+        </button>
+      )}
     </div>
   );
 
@@ -184,11 +199,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
       </AnimatePresence>
 
       {/* ── Desktop sidebar ──────────────────────────────────── */}
-      <aside 
-        className="hidden lg:flex lg:sticky lg:top-0 lg:h-screen lg:shrink-0 border-none overflow-visible z-50 relative"
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
-      >
+      <aside className="hidden lg:flex lg:sticky lg:top-0 lg:h-screen lg:shrink-0 border-none overflow-visible z-50 relative">
         <div className="flex h-full bg-[#1a2035] overflow-hidden border-r border-gray-200">
           <IconRail />
           <ExpandPanel />

@@ -20,8 +20,6 @@ import { Plus } from "lucide-react";
 
 export default function ApplicationDialog({
   contactId,
-  workflows = [],
-  partners = [],
   open,
   onOpenChange,
   onCreated,
@@ -30,11 +28,23 @@ export default function ApplicationDialog({
   const queryClient = useQueryClient();
 
   const [internalOpen, setInternalOpen] = useState(false);
-  const [form, setForm] = useState({ workflow_id: "", partner_id: "", partner_branch_id: "", product_id: "" });
+  const [form, setForm] = useState({ workflow_id: "", partner_id: "", partner_branch_id: "", product_id: "", current_stage_id: "" });
 
   const isControlled = typeof open === "boolean";
   const dialogOpen = isControlled ? open : internalOpen;
   const setDialogOpen = isControlled ? onOpenChange : setInternalOpen;
+
+  const { data: workflowsData, isLoading: isWorkflowsLoading } = useQuery({
+    queryKey: ["/workflows?with=stages", accessToken],
+    queryFn: fetchWithToken,
+    enabled: !!accessToken && dialogOpen,
+  });
+
+  const { data: partnersData, isLoading: isPartnersLoading } = useQuery({
+    queryKey: [`/partners?workflow_id=${form.workflow_id}`, accessToken],
+    queryFn: fetchWithToken,
+    enabled: !!accessToken && !!form.workflow_id && dialogOpen,
+  });
 
   const { data: branchesData, isLoading: isBranchesLoading } = useQuery({
     queryKey: [
@@ -47,7 +57,7 @@ export default function ApplicationDialog({
 
   const { data: productsData, isLoading: isProductsLoading } = useQuery({
     queryKey: [
-      form.partner_id ? `/partners/${form.partner_id}/products` : "/partners/0/products",
+      form.partner_id ? `/products?partner_id=${form.partner_id}` : "/products?partner_id=0",
       accessToken,
     ],
     queryFn: fetchWithToken,
@@ -60,7 +70,7 @@ export default function ApplicationDialog({
       if (res.status === "success") {
         toast.success(res.message || "Application created");
         setDialogOpen?.(false);
-        setForm({ workflow_id: "", partner_id: "", partner_branch_id: "", product_id: "" });
+        setForm({ workflow_id: "", partner_id: "", partner_branch_id: "", product_id: "", current_stage_id: "" });
         if (typeof onCreated === "function") onCreated(res);
         queryClient.invalidateQueries({ queryKey: [`/contacts/${contactId}/applications`, accessToken] });
       } else {
@@ -72,7 +82,7 @@ export default function ApplicationDialog({
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!form.workflow_id || !form.partner_branch_id || !form.product_id) {
+    if (!form.workflow_id || !form.partner_branch_id || !form.product_id || !form.current_stage_id) {
       toast.error("Please complete the form");
       return;
     }
@@ -80,11 +90,17 @@ export default function ApplicationDialog({
     fd.append("workflow_id", form.workflow_id);
     fd.append("partner_branch_id", form.partner_branch_id);
     fd.append("product_id", form.product_id);
+    fd.append("current_stage_id", form.current_stage_id);
     createMutation.mutate(fd);
   };
 
+  const workflows = workflowsData?.data || [];
+  const partners = partnersData?.data || [];
   const branches = branchesData?.data || [];
   const products = productsData?.data || [];
+
+  const selectedWorkflow = workflows.find((w) => w.id.toString() === form.workflow_id.toString());
+  const stages = selectedWorkflow?.stages || [];
 
   return (
     <Dialog
@@ -92,7 +108,7 @@ export default function ApplicationDialog({
       onOpenChange={(nextOpen) => {
         setDialogOpen?.(nextOpen);
         if (!nextOpen) {
-          setForm({ workflow_id: "", partner_id: "", partner_branch_id: "", product_id: "" });
+          setForm({ workflow_id: "", partner_id: "", partner_branch_id: "", product_id: "", current_stage_id: "" });
         }
       }}
     >
@@ -112,17 +128,59 @@ export default function ApplicationDialog({
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="workflow_id">Workflow</Label>
-            <select id="workflow_id" value={form.workflow_id} onChange={(e)=>setForm(prev=>({...prev,workflow_id:e.target.value}))} className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm">
-              <option value="">Select workflow</option>
-              {workflows.map(w=> <option key={w.id} value={w.id}>{w.name}</option>)}
+            <select
+              id="workflow_id"
+              value={form.workflow_id}
+              onChange={(e) => setForm((prev) => ({ ...prev, workflow_id: e.target.value, partner_id: "", partner_branch_id: "", product_id: "", current_stage_id: "" }))}
+              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm"
+              disabled={isWorkflowsLoading}
+            >
+              <option value="">{isWorkflowsLoading ? "Loading workflows..." : "Select workflow"}</option>
+              {workflows.map((w) => (
+                <option key={w.id} value={w.id}>
+                  {w.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="current_stage_id">Current Stage</Label>
+            <select
+              id="current_stage_id"
+              value={form.current_stage_id}
+              onChange={(e) => setForm((prev) => ({ ...prev, current_stage_id: e.target.value }))}
+              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm disabled:bg-gray-50 disabled:text-gray-400"
+              disabled={!form.workflow_id}
+            >
+              <option value="">
+                {!form.workflow_id ? "Select workflow first" : "Select stage"}
+              </option>
+              {stages.map((stage) => (
+                <option key={stage.id} value={stage.id}>
+                  {stage.name}
+                </option>
+              ))}
             </select>
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="partner_id">Partner</Label>
-            <select id="partner_id" value={form.partner_id} onChange={(e)=>setForm(prev=>({...prev,partner_id:e.target.value, partner_branch_id: '', product_id: ''}))} className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm">
-              <option value="">Select partner</option>
-              {partners.map(p=> <option key={p.id} value={p.id}>{p.name}</option>)}
+            <select
+              id="partner_id"
+              value={form.partner_id}
+              onChange={(e) => setForm((prev) => ({ ...prev, partner_id: e.target.value, partner_branch_id: "", product_id: "" }))}
+              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm disabled:bg-gray-50 disabled:text-gray-400"
+              disabled={!form.workflow_id || isPartnersLoading}
+            >
+              <option value="">
+                {!form.workflow_id ? "Select workflow first" : isPartnersLoading ? "Loading partners..." : "Select partner"}
+              </option>
+              {partners.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
             </select>
           </div>
 
@@ -131,7 +189,7 @@ export default function ApplicationDialog({
             <select
               id="partner_branch_id"
               value={form.partner_branch_id}
-              onChange={(e)=>setForm(prev=>({...prev,partner_branch_id:e.target.value}))}
+              onChange={(e) => setForm((prev) => ({ ...prev, partner_branch_id: e.target.value }))}
               className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm disabled:bg-gray-50 disabled:text-gray-400"
               disabled={!form.partner_id || isBranchesLoading}
             >
@@ -155,7 +213,7 @@ export default function ApplicationDialog({
             <select
               id="product_id"
               value={form.product_id}
-              onChange={(e)=>setForm(prev=>({...prev,product_id:e.target.value}))}
+              onChange={(e) => setForm((prev) => ({ ...prev, product_id: e.target.value }))}
               className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm disabled:bg-gray-50 disabled:text-gray-400"
               disabled={!form.partner_id || isProductsLoading}
             >
@@ -166,13 +224,17 @@ export default function ApplicationDialog({
                     ? "Loading products..."
                     : "Select product"}
               </option>
-              {products.map((p)=> <option key={p.id} value={p.id}>{p.name}</option>)}
+              {products.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
             </select>
           </div>
 
           <DialogFooter>
             <Button type="submit" className="bg-[#3B4CB8] hover:bg-[#2F3C94] text-white" disabled={createMutation.isPending}>
-              {createMutation.isPending ? 'Saving...' : 'Save'}
+              {createMutation.isPending ? "Saving..." : "Save"}
             </Button>
           </DialogFooter>
         </form>

@@ -53,6 +53,15 @@ function blankItem() {
   };
 }
 
+function blankPayment() {
+  return {
+    id: Date.now(),
+    amount: "",
+    payment_date: todayValue(),
+    payment_method: "Cheque",
+  };
+}
+
 function toCurrencyNumber(value) {
   const n = Number(value);
   return isNaN(n) ? 0 : n;
@@ -133,8 +142,9 @@ export default function CommissionInvoice({
 
   // ── Items ───────────────────────────────────────────────────────────────────
   const [items, setItems] = useState([blankItem()]);
+  const [payments, setPayments] = useState([]);
 
-  // (payments, notes, attachments, income sharing removed; payload uses minimal fields)
+  // (notes, attachments, income sharing removed; payload uses minimal fields)
 
   // ── Contacts & applications ─────────────────────────────────────────────────
   const isVisible = inline || open;
@@ -188,6 +198,9 @@ export default function CommissionInvoice({
   const netFeeReceived = baseTotalFee - discount; // discount deducted
   const netIncome = commissionClaimed - discount; // discount deducted
 
+  const totalPaid = payments.reduce((s, p) => s + toCurrencyNumber(p.amount), 0);
+  const amountDue = netFeePaidToPartner - totalPaid;
+
   // ── Item helpers ─────────────────────────────────────────────────────────────
   const updateItem = (id, field, value) => {
     setItems((prev) =>
@@ -229,7 +242,16 @@ export default function CommissionInvoice({
   const removeItem = (id) =>
     setItems((prev) => prev.filter((i) => i.id !== id));
 
-  // (payment & income-share helper functions removed)
+  // ── Payment helpers ──────────────────────────────────────────────────────────
+  const addPayment = () => setPayments((p) => [...p, blankPayment()]);
+  const removePayment = (id) =>
+    setPayments((p) => p.filter((x) => x.id !== id));
+  const updatePayment = (id, field, value) =>
+    setPayments((p) =>
+      p.map((x) => (x.id === id ? { ...x, [field]: value } : x)),
+    );
+
+  // (income-share helper functions removed)
 
   // ── Submit ───────────────────────────────────────────────────────────────────
   const saveMutation = useMutation({
@@ -253,8 +275,8 @@ export default function CommissionInvoice({
         sub_total: baseTotalFee,
         tax_total: taxTotal,
         grand_total: baseTotalFee,
-        total_paid: 0,
-        amount_due: netFeePaidToPartner,
+        total_paid: totalPaid,
+        amount_due: amountDue,
         discount_given: toCurrencyNumber(discountGiven),
         discount_date: discountDate,
         net_fee_received: netFeeReceived,
@@ -268,6 +290,11 @@ export default function CommissionInvoice({
           tax_rate: 10,
           tax_amount: toCurrencyNumber(i.tax_amount),
           total_amount: toCurrencyNumber(i.net_amount),
+        })),
+        payments: payments.map((p) => ({
+          amount: toCurrencyNumber(p.amount),
+          payment_date: p.payment_date,
+          payment_method: p.payment_method,
         })),
       };
 
@@ -625,6 +652,92 @@ export default function CommissionInvoice({
           </button>
         </div>
 
+        {/* ── Payments ── */}
+        <div>
+          <SectionTitle>Payments Received</SectionTitle>
+          {payments.length > 0 && (
+            <div className="rounded-xl border border-gray-200 overflow-hidden mb-2">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 border-b border-gray-200">
+                  <tr>
+                    {["Amount", "Date", "Method", ""].map((h) => (
+                      <th
+                        key={h}
+                        className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-gray-500"
+                      >
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {payments.map((p) => (
+                    <tr key={p.id} className="bg-white hover:bg-gray-50/50">
+                      <td className="px-3 py-2">
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={p.amount}
+                          onChange={(e) =>
+                            updatePayment(p.id, "amount", e.target.value)
+                          }
+                          className="h-8 text-sm w-28 text-right"
+                        />
+                      </td>
+                      <td className="px-3 py-2">
+                        <Input
+                          type="date"
+                          value={p.payment_date}
+                          onChange={(e) =>
+                            updatePayment(p.id, "payment_date", e.target.value)
+                          }
+                          className="h-8 text-xs w-36"
+                        />
+                      </td>
+                      <td className="px-3 py-2">
+                        <Select
+                          value={p.payment_method}
+                          onValueChange={(v) =>
+                            updatePayment(p.id, "payment_method", v)
+                          }
+                        >
+                          <SelectTrigger className="h-8 text-xs w-36">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {paymentMethodOptions.map((m) => (
+                              <SelectItem key={m} value={m}>
+                                {m}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </td>
+                      <td className="px-3 py-2">
+                        <button
+                          onClick={() => removePayment(p.id)}
+                          className="text-gray-300 hover:text-red-400 transition-colors"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+          <button
+            onClick={addPayment}
+            className="text-xs font-medium flex items-center gap-1 transition-colors"
+            style={{ color: APP_BLUE }}
+          >
+            <Plus className="w-3.5 h-3.5" />
+            Add Payment
+          </button>
+        </div>
+
         {/* ── Discount + Summary ── */}
         <div className="flex gap-6 items-start">
           {/* Left: discount + net fee cards */}
@@ -692,6 +805,16 @@ export default function CommissionInvoice({
             <SummaryRow
               label="Net Fee Paid to Partner"
               value={netFeePaidToPartner}
+              currency={currency}
+            />
+            <SummaryRow
+              label="Total Paid"
+              value={totalPaid}
+              currency={currency}
+            />
+            <SummaryRow
+              label="Amount Due"
+              value={amountDue}
               currency={currency}
               bold
             />

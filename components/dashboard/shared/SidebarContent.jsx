@@ -56,52 +56,23 @@ export default function SidebarContent({
   const filteredItems =
     search.trim().length > 0
       ? allItems.filter((item) =>
-          item.label.toLowerCase().includes(search.toLowerCase())
+          item.label.toLowerCase().includes(search.toLowerCase()),
         )
       : null;
 
   const initials = userInfo?.name
-    ? userInfo.name.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2)
+    ? userInfo.name
+        .split(" ")
+        .map((w) => w[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 2)
     : "SA";
 
   return (
     <>
-      {/* ── Header ──────────────────────────────────────────── */}
-      <div className="h-14 border-b border-gray-100 flex items-center justify-between px-4 shrink-0">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 bg-[#3B4CB8] rounded-lg flex items-center justify-center shrink-0">
-            <span className="text-white font-bold text-xs">ACT</span>
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-gray-800 leading-tight">ACT CRM</p>
-            <p className="text-[10px] text-gray-400 leading-tight">Education & Visa</p>
-          </div>
-        </div>
-
-        {isMobile ? (
-          <button
-            onClick={onClose}
-            className="p-1.5 rounded-md hover:bg-gray-100 transition-colors"
-          >
-            <X className="w-4 h-4 text-gray-500" />
-          </button>
-        ) : (
-          <button
-            onClick={onTogglePanel}
-            className="p-1.5 rounded-md border border-gray-200 hover:bg-gray-50 transition-colors hidden lg:hidden"
-            title="Collapse sidebar"
-          >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="text-gray-500">
-              <rect x="1" y="1" width="14" height="14" rx="2.5" stroke="currentColor" strokeWidth="1.2" />
-              <line x1="5.5" y1="1.5" x2="5.5" y2="14.5" stroke="currentColor" strokeWidth="1.2" />
-              <path d="M9 6l-2 2 2 2" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </button>
-        )}
-      </div>
-
       {/* ── Search ──────────────────────────────────────────── */}
-      <div className="px-3 py-2.5 border-b border-gray-100 shrink-0">
+      <div className="px-3 py-2.5 shrink-0">
         <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 focus-within:ring-2 focus-within:ring-[#3B4CB8]/20 focus-within:border-[#3B4CB8] transition-all">
           <Search className="w-3.5 h-3.5 text-gray-400 shrink-0" />
           <input
@@ -151,7 +122,7 @@ export default function SidebarContent({
                     onClose={onClose}
                     isMobile={isMobile}
                   />
-                ))
+                )),
               )
             )}
           </motion.div>
@@ -171,7 +142,10 @@ export default function SidebarContent({
             {userInfo?.role ?? "Administrator"}
           </p>
         </div>
-        <Link href={"/dashboard/settings"} className="p-1 rounded-md hover:bg-gray-100 transition-colors shrink-0">
+        <Link
+          href={"/dashboard/settings"}
+          className="p-1 rounded-md hover:bg-gray-100 transition-colors shrink-0"
+        >
           <Settings className="w-4 h-4 text-gray-400" />
         </Link>
       </div>

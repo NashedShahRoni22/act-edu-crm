@@ -59,16 +59,6 @@ export const railSections = [
             label: "Contacts",
             path: "/dashboard/contacts",
           },
-          {
-            icon: UserCircle,
-            label: "Partners",
-            path: "/dashboard/partners",
-          },
-          {
-            icon: UserPlus,
-            label: "Agents",
-            path: "/dashboard/agents",
-          },
         ],
       },
     ],
@@ -84,13 +74,23 @@ export const railSections = [
         items: [
           {
             icon: Package,
-            label: "Products",
+            label: "Courses",
             path: "/dashboard/products",
           },
           {
             icon: Briefcase,
             label: "Services",
             path: "/dashboard/services",
+          },
+          {
+            icon: Building2,
+            label: "Institutes",
+            path: "/dashboard/partners",
+          },
+          {
+            icon: UserPlus,
+            label: "Agents",
+            path: "/dashboard/agents",
           },
         ],
       },

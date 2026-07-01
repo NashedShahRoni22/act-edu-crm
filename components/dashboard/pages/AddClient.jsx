@@ -13,7 +13,6 @@ import ClientFormFields from "../clients/ClientFormFields";
 import ApplicationFields from "../clients/ApplicationFields";
 
 const emptyApplication = {
-  unique_id: "",
   product_id: "",
   partner_id: "",
   partner_branch_id: "",
@@ -71,13 +70,6 @@ export default function AddClient() {
   });
   const degreeLevels = degreeLevelsData?.data || [];
 
-  const { data: servicesData, isLoading: loadingServices } = useQuery({
-    queryKey: ["/services", accessToken],
-    queryFn: fetchWithToken,
-    enabled: !!accessToken,
-  });
-  const services = servicesData?.data || [];
-
   const createMutation = useMutation({
     mutationFn: async (fd) => await postWithToken("/contacts", fd, accessToken),
     onSuccess: (res) => {
@@ -107,7 +99,6 @@ export default function AddClient() {
     setApplications((prev) => {
       const updated = [...prev];
       updated[index] = { ...updated[index], [field]: value };
-      if (field === "workflow_id") updated[index].current_stage_id = "";
       return updated;
     });
   };
@@ -145,19 +136,20 @@ export default function AddClient() {
     if (!formData.email.trim()) return toast.error("Email is required");
     if (!formData.phone.trim()) return toast.error("Phone is required");
     if (!formData.dob) return toast.error("Date of birth is required");
-    if (!formData.gender) return toast.error("Gender is required");
-    if (!formData.assignee_id) return toast.error("Assignee is required");
-    if (!formData.source) return toast.error("Source is required");
 
-    for (let i = 0; i < applications.length; i++) {
-      const app = applications[i];
-      if (!app.unique_id)
-        return toast.error(`Application ${i + 1}: Service is required`);
-      if (!app.workflow_id)
-        return toast.error(`Application ${i + 1}: Workflow is required`);
-      if (!app.current_stage_id)
-        return toast.error(`Application ${i + 1}: Stage is required`);
-    }
+    // for (let i = 0; i < applications.length; i++) {
+    //   const app = applications[i];
+    //   if (!app.workflow_id)
+    //     return toast.error(`Application ${i + 1}: Workflow is required`);
+    //   if (!app.current_stage_id)
+    //     return toast.error(`Application ${i + 1}: Stage is required`);
+    //   if (!app.partner_id)
+    //     return toast.error(`Application ${i + 1}: Partner is required`);
+    //   if (!app.partner_branch_id)
+    //     return toast.error(`Application ${i + 1}: Partner Branch is required`);
+    //   if (!app.product_id)
+    //     return toast.error(`Application ${i + 1}: Product is required`);
+    // }
 
     const fd = new FormData();
     fd.append("first_name", formData.first_name.trim());
@@ -178,7 +170,16 @@ export default function AddClient() {
     formData.degree_levels.forEach((id, i) =>
       fd.append(`degree_levels[${i}]`, String(id)),
     );
-    applications.forEach((app, i) => {
+    const validApplications = applications.filter(
+      (app) =>
+        app.product_id ||
+        app.partner_id ||
+        app.partner_branch_id ||
+        app.workflow_id ||
+        app.current_stage_id
+    );
+
+    validApplications.forEach((app, i) => {
       fd.append(`applications[${i}][product_id]`, app.product_id);
       fd.append(`applications[${i}][partner_id]`, app.partner_id);
       fd.append(`applications[${i}][partner_branch_id]`, app.partner_branch_id);
@@ -194,14 +195,6 @@ export default function AddClient() {
     setTagsOpen(false);
     setApplications([{ ...emptyApplication }]);
   };
-
-  if (loadingServices) {
-    return (
-      <div className="flex items-center justify-center min-h-100">
-        <Loader2 className="w-8 h-8 text-[#3B4CB8] animate-spin" />
-      </div>
-    );
-  }
 
   return (
     <SectionContainer>
@@ -228,7 +221,6 @@ export default function AddClient() {
         <ApplicationFields
           applications={applications}
           setApplications={setApplications}
-          services={services}
           addApplication={addApplication}
           removeApplication={removeApplication}
           updateApplication={updateApplication}
