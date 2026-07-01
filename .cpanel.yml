@@ -1,7 +1,7 @@
 ---
 deployment:
   tasks:
-    - export DEPLOYPATH=/home/sitevplq/act-edu-crm-production/
+    - export DEPLOYPATH=/home/sitevplq/actedu.com.au/
     - /bin/cp -R .next $DEPLOYPATH
     - /bin/cp -R public $DEPLOYPATH
     - /bin/cp package.json $DEPLOYPATH
